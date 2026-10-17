@@ -109,6 +109,8 @@ project-root/
 6. No metadata files found (full file check of `C:\FILES\FINAL`) → all 122 CSVs go to Gold.
 7. Gold idea: weather-observation fact with date, hour and grid-cell dimensions; aggregates like rain frequency by month, hour, grid region.
 8. Gold aggregates must use **rates, not raw counts** (e.g. rain rows ÷ observed rows), because 19 days have missing hours – raw counts would make those days/months look drier.
+9. **No `mode: development` on the dev target.** Development mode renames every schema/volume to `dev_<user>_<name>`, which broke the shared `vstone_landing` name (`presets.name_prefix: ""` is ignored by the CLI). Names already include `dev`, and the useful dev-mode behaviours are set via presets instead (`trigger_pause_status: PAUSED`, `pipelines_development: true`, tag `environment: dev`). Side effect: dev jobs get no automatic `[dev <user>]` prefix, so job names must include the environment to tell dev and prod apart in the shared workspace.
+10. **The dev target owns the shared landing area** (`vstone_landing` schema + `source_files` volume, defined under `targets.dev` in `resources/unity_catalog.yml`, with `lifecycle.prevent_destroy: true`). If both targets declared it, the second deploy would fail ("already exists") and destroying either target would delete the source files for both. Consequence: **always deploy dev before prod**, and never remove these resources from the dev target.
 
 ## Open questions (do not assume – flag to Aman)
 - Must all 122 files (~18.1 GB) be used on Free Edition, or is a subset acceptable?

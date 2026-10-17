@@ -87,7 +87,7 @@ project-root/
   - Satellite brightness temperatures (likely Himawari-8, Kelvin): `B09B, B10B, B11B, B12B, B14B, B16B, I2B, IRB, WVB`.
   - `label`: rain (1) / no rain (0); rain is ~0.2–0.3% of rows.
 - Profiling (3 sample files): no nulls, no duplicates on the natural key, clean column names. `CIN = 9999` is a "no value" sentinel. Satellite band value `0` is physically impossible → treat as missing.
-- Profiling (full scan of all 122 files, see `docs/profiling/file_row_counts.csv`):
+- Profiling (full scan of all 122 files, see `docs/profiling/file_row_counts.csv`): **122 files, 63,157,500 rows; 19 files have missing whole hours** (mostly Oct 2019; 2019-10-20 has only 1 hour).
   - All 122 files match `combined_YYYY_MM_DD.csv`; every day of each month is present; **no metadata files**.
   - **Incomplete days:** 103 files are complete (540,000 rows, 24 hours); **19 are missing whole hours** (rows always = 22,500 × hours present; no partial hours). 16 are in Oct 2019 (chunk 2), plus 2020-04-06, 2020-04-13 and 2020-10-27. Worst case `combined_2019_10_20.csv` has only hour 10 (22,500 rows). Missing hours are absent rows, not nulls.
   - **Missing columns:** `combined_2019_04_27.csv` to `combined_2019_04_30.csv` (4 files, chunk 1) have **27 columns** – all 9 satellite bands (`B09B`…`WVB`) are absent. The other 118 files have 36 columns.
@@ -108,6 +108,7 @@ project-root/
 5. Silver: `CIN = 9999` → null; satellite bands = 0 → missing/quarantine.
 6. No metadata files found (full file check of `C:\FILES\FINAL`) → all 122 CSVs go to Gold.
 7. Gold idea: weather-observation fact with date, hour and grid-cell dimensions; aggregates like rain frequency by month, hour, grid region.
+8. Gold aggregates must use **rates, not raw counts** (e.g. rain rows ÷ observed rows), because 19 days have missing hours – raw counts would make those days/months look drier.
 
 ## Open questions (do not assume – flag to Aman)
 - Must all 122 files (~18.1 GB) be used on Free Edition, or is a subset acceptable?

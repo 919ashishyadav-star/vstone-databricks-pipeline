@@ -122,6 +122,10 @@ project-root/
 - Spark writes folders of part files; `coalesce(1)` only when a single file is truly needed.
 - Volume paths: `/Volumes/<catalog>/<schema>/<volume>/...`.
 
-## Current status
-- Repo cloned locally at `C:\projects\vstone-databricks-pipeline`; branches `main`, `dev`, `feature/data-profiling` exist on GitHub.
-- GitHub CLI authenticated. Next: Databricks CLI install + login, then Day 1 work on `feature/data-profiling`.
+## Current status (as of 2026-10-17, Day 1 on `feature/data-profiling`)
+- **Tooling:** repo cloned at `C:\projects\vstone-databricks-pipeline`; GitHub CLI authenticated; Databricks CLI v1.21.0 logged in (profile `DEFAULT`, OAuth).
+- **Repo:** required structure in place; `databricks.yml` (variables + `dev`/`prod` targets) and `resources/unity_catalog.yml`; CI workflow validates the bundle on PRs to `dev`/`main` (secrets `DATABRICKS_HOST`/`DATABRICKS_TOKEN` set, last run passed).
+- **PR:** `feature/data-profiling` → `dev` is open (PR #1); not merged.
+- **Workspace (dev deployed):** schemas `vstone_landing`, `vstone_dev_bronze`, `vstone_dev_silver`, `vstone_dev_gold`; volumes `vstone_landing.source_files` and `vstone_dev_bronze.raw_files`, all with comments. **prod not deployed.**
+- **Profiling done:** full scan of all 122 local files (`docs/profiling/file_row_counts.csv`, findings in the Dataset section).
+- **Next:** test-upload one source file to `/Volumes/workspace/vstone_landing/source_files/` and verify size; then upload the rest (pending the full-vs-subset decision); then requirements + assumptions doc and the "Data Chunking" notebook + job.

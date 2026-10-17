@@ -113,8 +113,12 @@ project-root/
 10. **The dev target owns the shared landing area** (`vstone_landing` schema + `source_files` volume, defined under `targets.dev` in `resources/unity_catalog.yml`, with `lifecycle.prevent_destroy: true`). If both targets declared it, the second deploy would fail ("already exists") and destroying either target would delete the source files for both. Consequence: **always deploy dev before prod**, and never remove these resources from the dev target.
 
 ## Open questions (do not assume – flag to Aman)
-- Must all 122 files (~18.1 GB) be used on Free Edition, or is a subset acceptable?
-- Confirm the DLT chunk is chunk 2.
+Kept in sync with §7 of `docs/requirements_and_assumptions.md` (same numbering).
+- **Q1** Must all 122 files (~18.1 GB) be used on Free Edition, or is a subset acceptable? (Current assumption: full dataset; chunk outputs add ~18 GB per environment.)
+- **Q2** Confirm the DLT chunk is chunk 2 (spec says "4th part").
+- **Q3** How to handle the 4 files without satellite columns (`combined_2019_04_27.csv` to `04_30`): keep the rows with satellite bands as null, or quarantine them in Silver? (Not yet decided.)
+- **Q4** Are the 19 incomplete days acceptable as-is? (Current assumption: yes – absent data, not errors; Gold uses rates, decision 8.)
+- **Q5** Are the schema and volume names acceptable? (Current assumption: yes – already deployed to dev; renaming = change bundle variables + redeploy.)
 
 ## Lessons from reference materials
 - XML: sanitise column names (no spaces/hyphens); XML round trips lose types and sort columns – use **explicit schemas** in Bronze.

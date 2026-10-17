@@ -1,0 +1,4 @@
+# Local / CI test dependencies (Databricks serverless already provides PySpark).
+pyspark==3.5.3
+pandas==2.2.3  # used by pyspark.testing helpers
+pytest==8.3.3

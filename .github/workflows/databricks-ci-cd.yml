@@ -1,5 +1,5 @@
 # CI for the Databricks Asset Bundle.
-# For now this only VALIDATES the bundle (no deploy). Deploy steps will be
+# Runs the unit tests and VALIDATES the bundle (no deploy). Deploy steps will be
 # added once the pipeline code exists and the team agrees on the release flow.
 name: databricks-ci-cd
 
@@ -9,6 +9,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # PySpark needs Java; the runner image ships Temurin 17.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install test dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run unit tests
+        run: pytest -v
+
   validate:
     runs-on: ubuntu-latest
     env:

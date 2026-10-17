@@ -1,0 +1,40 @@
+# Databricks Asset Bundle definition for the VStone pipeline.
+# The workspace host is NOT set here: it comes from your local Databricks CLI
+# profile (~/.databrickscfg) or, in CI, from the DATABRICKS_HOST secret.
+bundle:
+  name: vstone-databricks-pipeline
+
+# Jobs and pipelines are defined in their own files under resources/.
+include:
+  - resources/*.yml
+
+# Names used by notebooks, jobs and pipelines. Code reads these through
+# ${var.<name>} or job/notebook parameters instead of hard-coding them.
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds all pipeline schemas.
+    default: workspace
+  schema:
+    description: Schema for this environment's pipeline tables.
+  volume:
+    description: Unity Catalog volume where raw source files land.
+    default: raw_data
+
+targets:
+  dev:
+    # Development mode prefixes deployed resources with [dev <user>] and
+    # pauses job schedules, so experiments never clash with prod.
+    mode: development
+    default: true
+    variables:
+      schema: vstone_dev
+
+  prod:
+    # Production mode adds extra safety checks before deploy.
+    mode: production
+    workspace:
+      # Deploy into the deploying user's folder (not /Workspace/Shared, which
+      # every workspace user can write to). The user name is filled in at deploy time.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: vstone_prod

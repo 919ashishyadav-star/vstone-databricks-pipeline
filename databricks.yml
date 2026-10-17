@@ -35,6 +35,11 @@ variables:
     description: Volume in the Bronze schema holding this environment's chunk outputs.
     default: raw_files
 
+  # Bronze tables (one per chunk / ingestion method).
+  bronze_chunk1_table:
+    description: Bronze Delta table for chunk 1 (Apr 2019 CSV), loaded with COPY INTO.
+    default: rain_forecast_chunk1_csv
+
 targets:
   dev:
     # No `mode: development` on purpose: it renames every schema/volume to

@@ -79,13 +79,20 @@ project-root/
 
 ## Dataset: Rain Forecast (Kaggle `thanhlamdev/rain-forecast-dataset`)
 - **122 CSV files, one per day**: `combined_YYYY_MM_DD.csv` for Apr 2019 (30), Oct 2019 (31), Apr 2020 (30), Oct 2020 (31).
-- Each file: 540,000 rows (90 × 250 grid × 24 hours), ~167 MB, 36 columns. Total ≈ 66M rows, ~20 GB.
+- Local source path: `C:\FILES\FINAL` (all 122 files, no subfolders).
+- Each file (when complete): 540,000 rows (90 × 250 grid × 24 hours), ~167 MB, 36 columns. Total on disk ≈ **18.1 GB** (19,447,327,603 bytes); 63,157,500 rows actual vs 65,880,000 expected.
 - Columns:
   - Keys: `row` (0–89), `col` (0–249), `year`, `month`, `day`, `hour` (0–23).
   - Weather model variables (likely ERA5): `CAPE, CIN, EWSS, IE, ISOR, KX, PEV, R250, R500, R850, SLHF, SLOR, SSHF, TCLW, TCW, TCWV, U250, U850, V250, V850`.
   - Satellite brightness temperatures (likely Himawari-8, Kelvin): `B09B, B10B, B11B, B12B, B14B, B16B, I2B, IRB, WVB`.
   - `label`: rain (1) / no rain (0); rain is ~0.2–0.3% of rows.
 - Profiling (3 sample files): no nulls, no duplicates on the natural key, clean column names. `CIN = 9999` is a "no value" sentinel. Satellite band value `0` is physically impossible → treat as missing.
+- Profiling (full scan of all 122 files, see `docs/profiling/file_row_counts.csv`):
+  - All 122 files match `combined_YYYY_MM_DD.csv`; every day of each month is present; **no metadata files**.
+  - **Incomplete days:** 103 files are complete (540,000 rows, 24 hours); **19 are missing whole hours** (rows always = 22,500 × hours present; no partial hours). 16 are in Oct 2019 (chunk 2), plus 2020-04-06, 2020-04-13 and 2020-10-27. Worst case `combined_2019_10_20.csv` has only hour 10 (22,500 rows). Missing hours are absent rows, not nulls.
+  - **Missing columns:** `combined_2019_04_27.csv` to `combined_2019_04_30.csv` (4 files, chunk 1) have **27 columns** – all 9 satellite bands (`B09B`…`WVB`) are absent. The other 118 files have 36 columns.
+  - No empty, `NaN`, `null`/`NA`/`None` values anywhere; every row has the header's column count; every `hour` is 0–23.
+  - Hidden missing values (sentinels): `CIN = 9999` in 47.2% of rows; satellite bands = 0 in 2.18% of rows that have bands (1,327,500 rows), always in whole-hour blocks – e.g. 2019-04-26 and 2019-10-14 have 23 of 24 hours with all bands 0.
 
 ## Decisions and assumptions
 1. Natural key: `row, col, year, month, day, hour`.
@@ -99,13 +106,12 @@ project-root/
 3. Chunking in **PySpark**, parameterised (paths, file lists) so a subset or the full dataset is a config change.
 4. Capture source file name/date as an audit column.
 5. Silver: `CIN = 9999` → null; satellite bands = 0 → missing/quarantine.
-6. No metadata files identified → all 122 CSVs go to Gold (pending Kaggle file-list check).
+6. No metadata files found (full file check of `C:\FILES\FINAL`) → all 122 CSVs go to Gold.
 7. Gold idea: weather-observation fact with date, hour and grid-cell dimensions; aggregates like rain frequency by month, hour, grid region.
 
 ## Open questions (do not assume – flag to Aman)
-- Must all 122 files (~20 GB) be used on Free Edition, or is a subset acceptable?
+- Must all 122 files (~18.1 GB) be used on Free Edition, or is a subset acceptable?
 - Confirm the DLT chunk is chunk 2.
-- Check the Kaggle file list for metadata files.
 
 ## Lessons from reference materials
 - XML: sanitise column names (no spaces/hyphens); XML round trips lose types and sort columns – use **explicit schemas** in Bronze.

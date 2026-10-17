@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Databricks
+#   Credentials and local bundle state must never be committed.
+#   .databrickscfg holds the CLI host/token; .databricks/ is the bundle's local cache.
+.databrickscfg
+*.token
+.databricks/

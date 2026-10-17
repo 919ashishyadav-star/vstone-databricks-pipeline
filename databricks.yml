@@ -37,10 +37,16 @@ variables:
 
 targets:
   dev:
-    # Development mode prefixes deployed resources with [dev <user>] and
-    # pauses job schedules, so experiments never clash with prod.
-    mode: development
+    # No `mode: development` on purpose: it renames every schema/volume to
+    # dev_<user>_<name>, which would break the shared vstone_landing name.
+    # Our names already include "dev", and the useful dev-mode behaviours are
+    # set explicitly below instead.
     default: true
+    presets:
+      trigger_pause_status: PAUSED   # job schedules never fire in dev
+      pipelines_development: true    # Declarative Pipelines run in development mode
+      tags:
+        environment: dev
     variables:
       bronze_schema: vstone_dev_bronze
       silver_schema: vstone_dev_silver

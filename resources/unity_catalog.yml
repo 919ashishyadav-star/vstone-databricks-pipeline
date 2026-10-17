@@ -1,0 +1,63 @@
+# Unity Catalog schemas and volumes created by `databricks bundle deploy`.
+# All names come from bundle variables in databricks.yml (no hard-coding).
+
+resources:
+  # Per-environment medallion schemas: each target (dev / prod) gets its own set.
+  schemas:
+    bronze:
+      catalog_name: ${var.catalog}
+      name: ${var.bronze_schema}
+      comment: >-
+        Bronze layer: raw Rain Forecast data ingested as-is from the chunk files
+        (CSV, JSON, XML) with audit columns (load_dt, source_file).
+    silver:
+      catalog_name: ${var.catalog}
+      name: ${var.silver_schema}
+      comment: >-
+        Silver layer: cleaned and standardised Rain Forecast data (sentinels such as
+        CIN = 9999 and satellite band = 0 handled, duplicates removed, bad rows quarantined).
+    gold:
+      catalog_name: ${var.catalog}
+      name: ${var.gold_schema}
+      comment: >-
+        Gold layer: dimensional model (weather-observation fact, SCD2 dimensions)
+        and rate-based aggregates for business analytics.
+
+  volumes:
+    raw_files:
+      catalog_name: ${var.catalog}
+      # Referencing the schema resource makes the bundle create the schema first.
+      schema_name: ${resources.schemas.bronze.name}
+      name: ${var.raw_volume}
+      volume_type: MANAGED
+      comment: >-
+        Chunk outputs written by the Data Chunking job for this environment
+        (chunk1_csv, chunk2_csv, chunk3_json, chunk4_xml). Input to the Bronze layer.
+
+# The landing schema/volume is SHARED by dev and prod, so only one target may own it.
+# If both targets declared it, the second deploy would fail ("already exists") and
+# destroying either target would delete the ~18 GB of source files for both.
+# It is owned by the dev target (deployed first, Day 1) and protected from deletion.
+targets:
+  dev:
+    resources:
+      schemas:
+        landing:
+          catalog_name: ${var.catalog}
+          name: ${var.landing_schema}
+          comment: >-
+            Shared landing area for the original Kaggle Rain Forecast source files.
+            Used by both dev and prod; files are stored once.
+          lifecycle:
+            prevent_destroy: true
+      volumes:
+        source_files:
+          catalog_name: ${var.catalog}
+          schema_name: ${resources.schemas.landing.name}
+          name: ${var.landing_volume}
+          volume_type: MANAGED
+          comment: >-
+            Original 122 Kaggle CSVs (combined_YYYY_MM_DD.csv, ~18.1 GB), uploaded once
+            and read by the Data Chunking job in every environment. Do not modify.
+          lifecycle:
+            prevent_destroy: true

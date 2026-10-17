@@ -1,0 +1,40 @@
+{
+  "description": "Which source months go to which chunk, and how each chunk is produced. Paths are NOT here: they come from job parameters (bundle variables).",
+  "source_file_pattern": "combined_*.csv",
+  "chunks": [
+    {
+      "name": "chunk1_csv",
+      "months": ["2019-04"],
+      "format": "csv",
+      "method": "copy",
+      "compression": "none",
+      "bronze_method": "COPY INTO (first load)"
+    },
+    {
+      "name": "chunk2_csv",
+      "months": ["2019-10"],
+      "format": "csv",
+      "method": "copy",
+      "compression": "none",
+      "bronze_method": "Lakeflow Declarative Pipelines (incremental)"
+    },
+    {
+      "name": "chunk3_json",
+      "months": ["2020-04"],
+      "format": "json",
+      "method": "convert",
+      "compression": "gzip",
+      "bronze_method": "Auto Loader"
+    },
+    {
+      "name": "chunk4_xml",
+      "months": ["2020-10"],
+      "format": "xml",
+      "method": "convert",
+      "compression": "gzip",
+      "xml_root_tag": "records",
+      "xml_row_tag": "record",
+      "bronze_method": "PySpark read/write"
+    }
+  ]
+}

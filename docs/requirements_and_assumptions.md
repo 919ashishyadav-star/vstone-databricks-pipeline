@@ -120,9 +120,19 @@ The 122 daily files are split **by month** into four chunks, one per ingestion m
 | 4 | Oct 2020 | 31 | 16,695,000 | 4.86 GB | XML | PySpark read/write (`format("xml")`, `rowTag`) |
 | **Total** | | **122** | **63,157,500** | **18.1 GB** | | |
 
-Chunks 3 and 4 are converted from CSV to JSON and XML by the "Data Chunking" job, so each
-ingestion method has its own input format. Chunk 2 being the Declarative Pipelines chunk
-is an **assumption** (see open questions).
+The "Data Chunking" job (`src/notebooks/02_data_chunking.py`, job `[<env>] Data Chunking`)
+builds the chunks in `/Volumes/workspace/vstone_<env>_bronze/raw_files/chunks/`:
+
+| Chunk | How it is produced | Output files (one per source day) | Est. size |
+|---|---|---|---|
+| chunk1_csv | Source files **copied as-is** (no Spark) | `combined_2019_04_DD.csv` | 4.50 GB |
+| chunk2_csv | Source files **copied as-is** (no Spark) | `combined_2019_10_DD.csv` | 4.08 GB |
+| chunk3_json | Converted with Spark, **gzip** | `combined_2020_04_DD.json.gz` | ~0.7 GB (~8.4 GB uncompressed) |
+| chunk4_xml | Converted with Spark, **gzip** | `combined_2020_10_DD.xml.gz` | ~0.8 GB (~17.4 GB uncompressed) |
+
+The chunk-to-month mapping, formats and compression come from `src/config/chunk_plan.json`;
+paths come from job parameters. Chunk 2 being the Declarative Pipelines chunk is an
+**assumption** (see open questions).
 
 ---
 
@@ -140,7 +150,8 @@ satellite readings on a 90 × 250 grid, with a rain / no-rain label.
   - 20 weather-model variables (likely ERA5), e.g. `CAPE`, `CIN`, `TCWV`, `U850`.
   - 9 satellite brightness temperatures in Kelvin (likely Himawari-8): `B09B, B10B, B11B,
     B12B, B14B, B16B, I2B, IRB, WVB`.
-  - `label`: 1 = rain, 0 = no rain. Rain is rare (~0.2–0.3% of rows in sampled files).
+  - `label`: 1 = rain, 0 = no rain. Rain is rare: **0.1358%** of all 63,157,500 rows
+    (full-data profiling in Databricks; the earlier sample estimate was ~0.2–0.3%).
 
 Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_counts.csv).
 
@@ -153,7 +164,7 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
 | F3 | **`CIN = 9999` sentinel** | 9999 means "no value" for CIN. Present in **47.2%** of rows. | Treated as null in Silver (decision 5); nearly half the CIN values are effectively missing. |
 | F4 | **Satellite band = 0** | A brightness temperature of 0 K is physically impossible → missing. Found in **2.18%** of rows that have bands (1,327,500 rows), always in whole-hour blocks (e.g. 2019-04-26 and 2019-10-14: 23 of 24 hours). | Treated as missing / quarantined in Silver (decision 5). |
 | F5 | **No explicit nulls** | No empty, `NaN`, `null`, `NA` or `None` values in any file; every row has the header's column count; every `hour` is 0–23. | Missing data appears only as F1–F4, never as blank values. |
-| F6 | **Clean keys (sampled)** | No duplicates on the natural key and clean column names in the 3 sampled files. | Duplicate check across all 122 files will be repeated in Bronze/Silver. |
+| F6 | **Unique natural key (full data)** | **0 duplicate natural keys across all 63,157,500 rows** (profiling notebook `src/notebooks/01_data_profiling.py`, run in Databricks on the landing volume). Column names are clean. | The natural key (decision 1) is confirmed unique, so it can be the Gold fact table's key and the MERGE INTO match condition. Bronze/Silver still keep a dedupe check to catch duplicates introduced by reloads. |
 
 ---
 
@@ -162,9 +173,13 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
 1. **Natural key:** `row, col, year, month, day, hour` (one reading per grid cell per hour).
 2. **Chunking by month** into four chunks, one per ingestion method – see the
    [chunk plan](#4-chunk-plan).
-3. **Chunking is done in PySpark** and parameterised (paths, file lists), so using a
-   subset or the full dataset is a configuration change, not a code change.
-4. **The source file name/date is captured as an audit column** (e.g. `source_file`).
+3. **Chunking is parameterised:** paths come from job parameters and the chunk-to-month
+   mapping from `src/config/chunk_plan.json`, so using a subset or the full dataset is a
+   configuration change, not a code change. CSV chunks (1, 2) are **copied as-is**; Spark is
+   used only to convert chunk 3 to JSON and chunk 4 to XML.
+4. **The source file name is captured as an audit column in Bronze, from file metadata**
+   (`_metadata.file_name`). Chunk outputs have no `source_file` column; each output file
+   keeps its source day's name instead (decision 11).
 5. **Silver handling of sentinels:** `CIN = 9999` → null; satellite band = 0 → treated as
    missing / quarantined.
 6. **No metadata files exist** (full check of all 122 files) → **all 122 CSVs flow to Gold**.
@@ -185,6 +200,23 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
     declared it, the second deploy would fail ("already exists") and destroying either
     target would delete the source files for both. *Consequence:* **always deploy dev
     before prod**, and never remove these resources from the dev target.
+11. **One output file per source day, with a fixed name** (e.g.
+    `chunk3_json/combined_2020_04_01.json.gz`). COPY INTO and Auto Loader remember files by
+    path; Spark's default `part-<random-id>` names would change on every run and be loaded
+    again. Fixed names make reruns safe. The default mode `skip_existing` leaves existing
+    outputs untouched; `overwrite` regenerates them at the same paths.
+12. **Schema drift is handled in Bronze, not during chunking.** The 4 Apr 2019 files with
+    27 columns are copied unchanged into chunk 1, so Bronze (COPY INTO) must match columns
+    by name. The JSON/XML conversion reads source files grouped by header with explicit
+    schemas and combines them by name (shared module `src/common/source_reader.py`).
+13. **gzip for JSON and XML only.** Measured on 20,000 real rows: JSON ≈ 1.8× and XML ≈ 3.6×
+    the CSV size, i.e. ≈ 8.4 GB and ≈ 17.4 GB uncompressed vs ≈ 0.7 GB and ≈ 0.8 GB gzipped.
+    CSV chunks stay uncompressed (identical to the source). Dev chunks total ≈ 10 GB.
+14. **XML tags are `records` (root) and `record` (row)**, not `row`, because the dataset has
+    a column called `row`: `<row><row>0</row>…</row>` would break reading the XML back.
+15. **Row-count sanity check for every chunk:** rows in each output file must equal rows in
+    its source file, the file count must match, and no unexpected files may be present;
+    otherwise the job fails and sends the failure email.
 
 ---
 

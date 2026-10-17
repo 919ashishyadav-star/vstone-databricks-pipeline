@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+# Make `src/` importable in tests, the same way notebooks import `common.*`.
+pythonpath = ["src"]
+testpaths = ["tests"]

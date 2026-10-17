@@ -131,5 +131,7 @@ Kept in sync with §7 of `docs/requirements_and_assumptions.md` (same numbering)
 - **Repo:** required structure in place; `databricks.yml` (variables + `dev`/`prod` targets) and `resources/unity_catalog.yml`; CI workflow validates the bundle on PRs to `dev`/`main` (secrets `DATABRICKS_HOST`/`DATABRICKS_TOKEN` set, last run passed).
 - **PR:** `feature/data-profiling` → `dev` is open (PR #1); not merged.
 - **Workspace (dev deployed):** schemas `vstone_landing`, `vstone_dev_bronze`, `vstone_dev_silver`, `vstone_dev_gold`; volumes `vstone_landing.source_files` and `vstone_dev_bronze.raw_files`, all with comments. **prod not deployed.**
-- **Profiling done:** full scan of all 122 local files (`docs/profiling/file_row_counts.csv`, findings in the Dataset section).
-- **Next:** test-upload one source file to `/Volumes/workspace/vstone_landing/source_files/` and verify size; then upload the rest (pending the full-vs-subset decision); then requirements + assumptions doc and the "Data Chunking" notebook + job.
+- **Source files uploaded:** all 122 CSVs are in `/Volumes/workspace/vstone_landing/source_files/` (uploaded 2026-10-17 with `databricks fs cp`; verified: 122 files, 19,447,327,603 bytes, every file's size matches `C:\FILES\FINAL`, 0 failures).
+- **Profiling done (local):** full scan of all 122 local files (`docs/profiling/file_row_counts.csv`, findings in the Dataset section).
+- **Docs:** `docs/requirements_and_assumptions.md` written (goal, constraints, naming, chunk plan, profiling, decisions 1–10, open questions Q1–Q5).
+- **Next:** profiling notebook `src/notebooks/01_data_profiling.py` (PySpark, reads the landing volume) – run it in Databricks and keep its output as evidence; then the "Data Chunking" notebook + job.

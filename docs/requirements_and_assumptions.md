@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Day 1 (Setup + Data Chunking), branch `feature/data-profiling` |
-| **Last updated** | 2026-10-17 |
+| **Status** | Day 1 (Setup + Data Chunking) merged into `dev`; Day 2 (Bronze chunk 1) on `feature/bronze-layer` |
+| **Last updated** | 2026-10-21 |
 | **Audience** | Trainer / reviewer new to the project |
 
 This document explains what the project must deliver, the constraints it runs under,
@@ -217,6 +217,24 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
 15. **Row-count sanity check for every chunk:** rows in each output file must equal rows in
     its source file, the file count must match, and no unexpected files may be present;
     otherwise the job fails and sends the failure email.
+16. **One Bronze table per chunk / ingestion method.** Chunk 1 → `rain_forecast_chunk1_csv`
+    (COPY INTO); Day 3 adds `…_chunk2_csv`, `…_chunk3_json` and `…_chunk4_xml`; Silver
+    combines them. Table names are bundle variables (e.g. `bronze_chunk1_table`).
+17. **Bronze audit columns:** `source_file`, `source_file_path` and `source_file_modified_dt`
+    (from file metadata), `load_dt` (load time), `load_run_id` (the job run ID, or `'manual'`
+    when the notebook is run by hand) and `ingestion_method` (e.g. `'COPY_INTO'`), so Silver
+    can tell which method loaded each row.
+18. **The Bronze schema is explicit:** every column is read as text (no `inferSchema`) and cast
+    to the table's type; the table and every column have descriptions from
+    `src/common/rain_schema.py`. Values are kept exactly as in the source (`CIN = 9999`,
+    band = 0). Files with different headers are matched **by column name** – proven for the
+    4 files with 27 columns (satellite bands null on every row, `sum(label)` equal to the source).
+19. **Liquid Clustering `CLUSTER BY (day, hour)`** for chunk 1: the table holds one year and one
+    month, so `year` and `month` would add nothing. `(row, col)` will be compared in the Day 7
+    benchmark.
+20. **COPY INTO never uses `force`.** It skips files already loaded into the table, so a rerun
+    loads 0 rows (verified: the second run inserted 0 rows and the table was unchanged; see
+    `docs/bronze/bronze_chunk1_verification.md`).
 
 ---
 

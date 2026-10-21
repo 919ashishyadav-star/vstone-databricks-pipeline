@@ -1,0 +1,56 @@
+# "Bronze XML" job: loads chunk4_xml into the Bronze table with a PySpark XML batch read/write.
+# Runs src/notebooks/05_bronze_xml.py on serverless compute.
+
+resources:
+  jobs:
+    bronze_xml:
+      name: "[${bundle.target}] Bronze XML"
+      description: >-
+        Loads the chunk 4 gzip XML files (Oct 2020) from the Bronze raw_files volume into the Delta table
+        ${var.bronze_chunk4_table} with spark.read.format("xml") (explicit schema, PERMISSIVE with rescued data
+        and corrupt-record columns, audit columns, Liquid Clustering), then checks it against the original
+        landing CSVs. Safe to rerun: files already in the table are skipped; mode = replace reloads chosen files.
+      max_concurrent_runs: 1  # two runs must never load the same new files at once
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      # Job parameters are passed to the notebook widgets of the same name.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.bronze_schema}
+        - name: raw_volume
+          default: ${var.raw_volume}
+        - name: chunk_name
+          default: chunk4_xml
+        - name: config_chunk
+          default: chunk4_xml
+        - name: table_name
+          default: ${var.bronze_chunk4_table}
+        - name: landing_schema
+          default: ${var.landing_schema}
+        - name: landing_volume
+          default: ${var.landing_volume}
+        - name: config_path
+          default: ${workspace.file_path}/src/config/chunk_plan.json
+        - name: mode
+          default: skip_loaded
+        - name: replace_files
+          default: ""
+        - name: cluster_by
+          default: day,hour
+        - name: load_run_id
+          default: "{{job.run_id}}"
+        - name: run_optimize
+          default: "true"
+
+      tasks:
+        - task_key: bronze_xml
+          # No cluster is defined, so the task runs on serverless compute.
+          notebook_task:
+            notebook_path: ../src/notebooks/05_bronze_xml.py
+          max_retries: 0
+          disable_auto_optimization: true

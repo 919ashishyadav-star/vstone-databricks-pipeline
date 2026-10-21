@@ -42,6 +42,9 @@ variables:
   bronze_chunk3_table:
     description: Bronze Delta table for chunk 3 (Apr 2020 gzip JSON), loaded with Auto Loader.
     default: rain_forecast_chunk3_json
+  bronze_chunk4_table:
+    description: Bronze Delta table for chunk 4 (Oct 2020 gzip XML), loaded with a PySpark XML batch read.
+    default: rain_forecast_chunk4_xml
   checkpoint_volume:
     description: Volume in the Bronze schema holding streaming checkpoints and schema locations.
     default: checkpoints

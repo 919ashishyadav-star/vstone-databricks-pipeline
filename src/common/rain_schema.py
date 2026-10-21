@@ -70,6 +70,14 @@ RESCUED_COLUMN = (
     "cased field), as JSON including the file path. Null when the row parsed cleanly.",
 )
 
+# Data-quality column for readers with a corrupt-record column (e.g. XML in PERMISSIVE mode).
+CORRUPT_COLUMN = (
+    "_corrupt_record",
+    "STRING",
+    "Data quality: raw text of a source record that could not be parsed at all (data columns are then "
+    "null). Null when the record parsed.",
+)
+
 ALL_COLUMNS = DATA_COLUMNS + AUDIT_COLUMNS
 NATURAL_KEY = ["row", "col", "year", "month", "day", "hour"]
 SATELLITE_BANDS = ["B09B", "B10B", "B11B", "B12B", "B14B", "B16B", "I2B", "IRB", "WVB"]
@@ -78,9 +86,12 @@ _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _SPARK_TYPES = {"INT": T.IntegerType, "DOUBLE": T.DoubleType, "STRING": T.StringType, "TIMESTAMP": T.TimestampType}
 
 
-def bronze_columns(include_rescued: bool = False) -> list:
-    """Columns of a Bronze table: data + audit, plus `_rescued_data` when the reader supports it."""
-    return ALL_COLUMNS + ([RESCUED_COLUMN] if include_rescued else [])
+def bronze_columns(include_rescued: bool = False, include_corrupt: bool = False) -> list:
+    """Columns of a Bronze table: data + audit, plus the data-quality columns the reader supports."""
+    return ALL_COLUMNS + ([RESCUED_COLUMN] if include_rescued else []) + ([CORRUPT_COLUMN] if include_corrupt else [])
+
+
+SPARK_TYPE_NAMES = {"INT": "int", "DOUBLE": "double", "STRING": "string", "TIMESTAMP": "timestamp"}
 
 
 def column_names(columns=DATA_COLUMNS):

@@ -87,6 +87,12 @@ def test_bronze_columns_add_rescued_data_only_when_asked():
     assert RESCUED_COLUMN[0] == "_rescued_data" and len(RESCUED_COLUMN[2]) > 10
 
 
+def test_bronze_columns_with_corrupt_record():
+    cols = bronze_columns(include_rescued=True, include_corrupt=True)
+    assert column_names(cols)[-2:] == ["_rescued_data", "_corrupt_record"]
+    assert all(desc for _n, _t, desc in cols)
+
+
 def test_create_table_sql_with_rescued_column():
     sql = create_table_sql(TABLE, "t", ["day", "hour"], bronze_columns(include_rescued=True))
     assert "`_rescued_data` STRING COMMENT '" in sql

@@ -1,6 +1,8 @@
 """Sanity checks shared by the Bronze loads: compare each loaded file with its chunk file."""
 
-from common.rain_schema import NATURAL_KEY, SATELLITE_BANDS, quote_identifier, sql_string
+import math
+
+from common.rain_schema import NATURAL_KEY, SATELLITE_BANDS, SPARK_TYPE_NAMES, quote_identifier, sql_string
 
 # Spark DDL for the per-file check table shown in the notebooks.
 CHECK_SCHEMA = (
@@ -9,17 +11,25 @@ CHECK_SCHEMA = (
 )
 
 
-def table_file_stats_sql(table: str, include_rescued: bool = False) -> str:
-    """Per-source-file statistics of a Bronze table."""
+def table_file_stats_sql(table: str, include_rescued: bool = False, include_corrupt: bool = False,
+                         sum_columns=()) -> str:
+    """Per-source-file statistics of a Bronze table.
+
+    `sum_columns` adds `sum_<column>` for value checks against the source (e.g. CAPE, B14B).
+    """
     bands_all_null = " AND ".join(f"{quote_identifier(b)} IS NULL" for b in SATELLITE_BANDS)
     bands_any_null = " OR ".join(f"{quote_identifier(b)} IS NULL" for b in SATELLITE_BANDS)
     extra = ""
     if include_rescued:
-        extra = (
+        extra += (
             ",\n       count_if(_rescued_data IS NOT NULL) AS rows_rescued"
             ",\n       count_if(" + " AND ".join(f"{quote_identifier(c)} IS NULL" for c in NATURAL_KEY + ["label"])
             + ") AS rows_all_data_null"
         )
+    if include_corrupt:
+        extra += ",\n       count_if(_corrupt_record IS NOT NULL) AS rows_corrupt"
+    for c in sum_columns:
+        extra += f",\n       sum({quote_identifier(c)}) AS {quote_identifier('sum_' + c)}"
     return (
         "SELECT source_file,\n"
         "       count(*) AS rows,\n"
@@ -65,13 +75,37 @@ def audit_check_sql(table: str, ingestion_method: str) -> str:
     )
 
 
-def compare_file_stats(source_stats: dict, table_stats: dict, has_bands: dict) -> tuple:
+def values_match(a, b, rel_tol: float = 1e-9) -> bool:
+    """Equal sums, allowing only floating-point rounding (sums are added in a different order)."""
+    if a is None or b is None:
+        return a is None and b is None
+    return math.isclose(float(a), float(b), rel_tol=rel_tol, abs_tol=1e-6)
+
+
+def schema_problems(actual_fields, expected_columns) -> list:
+    """Compare a table's columns (name, Spark type string) with the expected columns, in order."""
+    expected = [(n, SPARK_TYPE_NAMES[t]) for n, t, _d in expected_columns]
+    actual = [(n, t) for n, t in actual_fields]
+    if actual == expected:
+        return []
+    problems = []
+    if [n for n, _ in actual] != [n for n, _ in expected]:
+        problems.append(f"column order/names differ: table {[n for n, _ in actual]} vs expected {[n for n, _ in expected]}")
+    for (an, at), (en, et) in zip(actual, expected):
+        if an == en and at != et:
+            problems.append(f"column {an}: type {at} != expected {et}")
+    return problems or ["schema differs from rain_schema"]
+
+
+def compare_file_stats(source_stats: dict, table_stats: dict, has_bands: dict, source_sums=None,
+                       rel_tol: float = 1e-9) -> tuple:
     """Compare a Bronze table with its chunk files, file by file.
 
     Args:
-        source_stats: {file name: (rows, sum of label)} counted from the chunk files.
+        source_stats: {file name: (rows, sum of label)} counted from the chunk (or original source) files.
         table_stats: {file name: row dict from table_file_stats_sql()}.
         has_bands: {file name: True if the source file has satellite columns}.
+        source_sums: optional {file name: {column: sum}} checked against `sum_<column>` in table_stats.
 
     Returns:
         (check rows matching CHECK_SCHEMA, list of problem messages). No problems = pass.
@@ -100,6 +134,11 @@ def compare_file_stats(source_stats: dict, table_stats: dict, has_bands: dict) -
             issues.append(f"{t['rows_rescued']:,} rows with rescued data")
         if t.get("rows_all_data_null"):
             issues.append(f"{t['rows_all_data_null']:,} rows with every key and label null (malformed)")
+        if t.get("rows_corrupt"):
+            issues.append(f"{t['rows_corrupt']:,} corrupt records")
+        for column, src_sum in sorted(((source_sums or {}).get(name) or {}).items()):
+            if t and not values_match(t.get(f"sum_{column}"), src_sum, rel_tol):
+                issues.append(f"sum({column}) {t.get(f'sum_{column}')} != source {src_sum}")
         problems += [f"{name}: {i}" for i in issues]
         rows.append((
             name, "yes" if has_bands.get(name) else "no", src_rows, tbl_rows, src_label, t.get("label_sum"),

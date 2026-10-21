@@ -5,7 +5,9 @@ from common.bronze_checks import (
     compare_file_stats,
     duplicate_keys_sql,
     load_batches_sql,
+    schema_problems,
     table_file_stats_sql,
+    values_match,
 )
 
 TABLE = "`workspace`.`vstone_dev_bronze`.`t`"
@@ -48,6 +50,38 @@ def test_each_problem_is_reported(source, table, message):
     rows, problems = compare_file_stats(source, table, HAS_BANDS)
     assert any(message in p for p in problems), problems
     assert any(r[-1] != "OK" for r in rows)
+
+
+def test_value_sums_within_rounding_pass_and_real_differences_fail():
+    table = {**GOOD_TABLE, "a.csv": tstats(100, 3, sum_CAPE=1234.5000000001, sum_B14B=99.0)}
+    _rows, ok = compare_file_stats(GOOD_SOURCE, table, HAS_BANDS, {"a.csv": {"CAPE": 1234.5, "B14B": 99.0}})
+    assert ok == []
+    _rows, bad = compare_file_stats(GOOD_SOURCE, table, HAS_BANDS, {"a.csv": {"CAPE": 1234.6, "B14B": 99.0}})
+    assert any("sum(CAPE)" in p for p in bad)
+
+
+def test_corrupt_records_are_reported():
+    table = {**GOOD_TABLE, "a.csv": tstats(100, 3, rows_corrupt=2)}
+    _rows, problems = compare_file_stats(GOOD_SOURCE, table, HAS_BANDS)
+    assert any("2 corrupt records" in p for p in problems)
+
+
+def test_values_match():
+    assert values_match(None, None) and not values_match(None, 1.0)
+    assert values_match(1e6, 1e6 * (1 + 1e-12)) and not values_match(1.0, 1.001)
+
+
+def test_schema_problems_detects_order_and_type_differences():
+    cols = [("row", "INT", "d"), ("CAPE", "DOUBLE", "d")]
+    assert schema_problems([("row", "int"), ("CAPE", "double")], cols) == []
+    assert any("order" in p for p in schema_problems([("CAPE", "double"), ("row", "int")], cols))
+    assert any("CAPE: type string" in p for p in schema_problems([("row", "int"), ("CAPE", "string")], cols))
+
+
+def test_table_file_stats_sql_with_corrupt_and_sums():
+    sql = table_file_stats_sql(TABLE, include_rescued=True, include_corrupt=True, sum_columns=["CAPE", "B14B"])
+    assert "count_if(_corrupt_record IS NOT NULL) AS rows_corrupt" in sql
+    assert "sum(`CAPE`) AS `sum_CAPE`" in sql and "sum(`B14B`) AS `sum_B14B`" in sql
 
 
 def test_rescued_columns_are_optional_in_table_stats():

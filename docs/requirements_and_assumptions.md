@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Day 1 (Setup + Data Chunking) merged into `dev`; Day 2 (Bronze chunk 1) and Day 3 part 1 (Bronze chunk 3) on `feature/bronze-layer` |
+| **Status** | Day 1 (Setup + Data Chunking) merged into `dev`; Day 2 and Day 3 (Bronze chunks 1, 3 and 4) on `feature/bronze-layer`; chunk 2 waits on Q2 |
 | **Last updated** | 2026-10-21 |
 | **Audience** | Trainer / reviewer new to the project |
 
@@ -257,6 +257,28 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
     live in `src/common/bronze_checks.py`, and the audit columns in `src/common/bronze_audit.py`,
     used by every Bronze notebook. The refactor was verified by rerunning chunk 1: the check
     output was byte-identical to the original run.
+26. **Chunk 4 is loaded into `rain_forecast_chunk4_xml` with a PySpark batch read/write**
+    (`spark.read.format("xml")`), using the row tag from `src/config/chunk_plan.json`, an
+    explicit typed schema, the same audit columns with `ingestion_method = 'PYSPARK_XML'`,
+    `CLUSTER BY (day, hour)`, and one Delta commit per run.
+27. **Rerun safety without a checkpoint:** files already in the table (same `source_file` and
+    modification time, to the second) are skipped; a file that changed after it was loaded
+    stops the run; `mode = replace` reloads chosen files with
+    `replaceWhere "source_file IN (...)"`, so a reload never creates duplicates.
+28. **XML bad records:** parse mode `PERMISSIVE` (never `DROPMALFORMED`, which loses rows
+    silently, and not `FAILFAST`, which stops without keeping the record). Values of the wrong
+    type and unexpected or differently cased elements go to `_rescued_data`; a record that cannot
+    be parsed at all is kept as raw text in `_corrupt_record` (unlike JSON, where it was lost).
+    Any such row fails the checks. Proven with a test file (`docs/bronze/xml_bad_record_test/`).
+29. **XML lessons applied:** XML has no types and schema inference sorts columns alphabetically,
+    so nothing is inferred: elements are matched by name, columns are selected by name in table
+    order, and a check confirms the table's names, order and types equal `rain_schema`. The XML
+    load is compared with the **original landing CSVs**, including per-file `sum(CAPE)` and
+    `sum(B14B)` (tolerance 1e-9), to prove the CSV → XML → Delta round trip kept the values.
+30. **CI matches the serverless runtime.** Serverless job compute in this workspace runs
+    **Spark 4.2.0 on Python 3.11** (checked on 2026-10-21 with a one-off run), so CI tests on
+    **PySpark 4.2.0** (with PyArrow 18.1.0, Python 3.11 and Java 17). This also allows unit tests
+    of the native XML reader. The version should be re-checked when serverless is upgraded.
 
 ---
 

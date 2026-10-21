@@ -1,0 +1,11 @@
+2026-10-21 16:38:52 "[dev] Bronze XML" INTERNAL_ERROR FAILED Task bronze_xml failed with message: Workload failed, see run output for details.
+AssertionError: Bronze XML sanity check failed:
+- combined_test_bad.xml: no matching original CSV in /Volumes/workspace/vstone_landing/source_files
+- combined_test_bad.xml: in table but not in chunk folder
+- combined_test_bad.xml: rows 5 != source 0
+- combined_test_bad.xml: sum(label) 0 != source None
+- combined_test_bad.xml: 1 rows with null/invalid label
+- combined_test_bad.xml: 3 rows with rescued data
+- combined_test_bad.xml: 1 rows with every key and label null (malformed)
+- combined_test_bad.xml: 1 corrupt records
+Error: failed to reach TERMINATED or SKIPPED, got INTERNAL_ERROR: Task bronze_xml failed with message: Workload failed, see run output for details.

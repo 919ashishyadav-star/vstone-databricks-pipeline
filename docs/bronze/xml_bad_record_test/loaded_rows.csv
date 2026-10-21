@@ -1,0 +1,6 @@
+"row","col","year","CAPE","KX","B14B","label","_rescued_data","_corrupt_record","source_file","load_run_id","ingestion_method"
+"0","0","2020","1.5","1.5","285.25","0",,,"combined_test_bad.xml","967071450974619","PYSPARK_XML"
+"1","0","2020",,"1.5","285.25","0","{""CAPE"":""not_a_number"",""_file_path"":""dbfs:/Volumes/workspace/vstone_dev_bronze/raw_files/chunks/_test_bad_xml/combined_test_bad.xml""}",,"combined_test_bad.xml","967071450974619","PYSPARK_XML"
+"2","0","2020","1.5","1.5","285.25","0","{""EXTRA_FIELD"":123,""_file_path"":""dbfs:/Volumes/workspace/vstone_dev_bronze/raw_files/chunks/_test_bad_xml/combined_test_bad.xml""}",,"combined_test_bad.xml","967071450974619","PYSPARK_XML"
+"3","0","2020","1.5",,"285.25","0","{""kx"":7.25,""_file_path"":""dbfs:/Volumes/workspace/vstone_dev_bronze/raw_files/chunks/_test_bad_xml/combined_test_bad.xml""}",,"combined_test_bad.xml","967071450974619","PYSPARK_XML"
+,,,,,,,,"<record><row>4</row><col>0</col><year>2020</year><CAPE>1.5</record>","combined_test_bad.xml","967071450974619","PYSPARK_XML"

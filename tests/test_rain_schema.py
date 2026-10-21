@@ -1,12 +1,16 @@
 import pytest
+from pyspark.sql import types as T
 
 from common.rain_schema import (
     ALL_COLUMNS,
     AUDIT_COLUMNS,
     DATA_COLUMNS,
     NATURAL_KEY,
+    RESCUED_COLUMN,
     SATELLITE_BANDS,
+    bronze_columns,
     column_names,
+    spark_schema,
     comment_sql,
     create_table_sql,
     full_table_name,
@@ -74,6 +78,25 @@ def test_create_table_sql_has_every_column_comment_and_clustering():
 def test_create_table_sql_rejects_bad_clustering(cluster_by):
     with pytest.raises(ValueError):
         create_table_sql(TABLE, "t", cluster_by)
+
+
+def test_bronze_columns_add_rescued_data_only_when_asked():
+    assert bronze_columns() == ALL_COLUMNS
+    with_rescued = bronze_columns(include_rescued=True)
+    assert with_rescued[:-1] == ALL_COLUMNS and with_rescued[-1] == RESCUED_COLUMN
+    assert RESCUED_COLUMN[0] == "_rescued_data" and len(RESCUED_COLUMN[2]) > 10
+
+
+def test_create_table_sql_with_rescued_column():
+    sql = create_table_sql(TABLE, "t", ["day", "hour"], bronze_columns(include_rescued=True))
+    assert "`_rescued_data` STRING COMMENT '" in sql
+
+
+def test_spark_schema_types():
+    schema = spark_schema(ALL_COLUMNS)
+    assert schema["load_dt"].dataType == T.TimestampType()
+    assert schema["source_file"].dataType == T.StringType()
+    assert all(f.nullable for f in schema)
 
 
 def test_comment_sql_covers_table_and_every_column():

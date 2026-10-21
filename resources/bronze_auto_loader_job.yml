@@ -1,0 +1,48 @@
+# "Bronze Auto Loader" job: loads chunk3_json into the Bronze table with Auto Loader.
+# Runs src/notebooks/04_bronze_auto_loader.py on serverless compute.
+
+resources:
+  jobs:
+    bronze_auto_loader:
+      name: "[${bundle.target}] Bronze Auto Loader"
+      description: >-
+        Loads the chunk 3 gzip JSON files (Apr 2020) from the Bronze raw_files volume into the Delta
+        table ${var.bronze_chunk3_table} with Auto Loader (explicit schema, rescued data, audit columns,
+        Liquid Clustering, trigger availableNow), then runs sanity checks against the chunk files.
+        Safe to rerun: the checkpoint skips files already loaded.
+      max_concurrent_runs: 1  # two streams must never share a checkpoint
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      # Job parameters are passed to the notebook widgets of the same name.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.bronze_schema}
+        - name: raw_volume
+          default: ${var.raw_volume}
+        - name: chunk_name
+          default: chunk3_json
+        - name: table_name
+          default: ${var.bronze_chunk3_table}
+        - name: checkpoint_volume
+          default: ${var.checkpoint_volume}
+        - name: cluster_by
+          default: day,hour
+        - name: max_files_per_trigger
+          default: "10"
+        - name: load_run_id
+          default: "{{job.run_id}}"
+        - name: run_optimize
+          default: "true"
+
+      tasks:
+        - task_key: bronze_auto_loader
+          # No cluster is defined, so the task runs on serverless compute.
+          notebook_task:
+            notebook_path: ../src/notebooks/04_bronze_auto_loader.py
+          max_retries: 0
+          disable_auto_optimization: true

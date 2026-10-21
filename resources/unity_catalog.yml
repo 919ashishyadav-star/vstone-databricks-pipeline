@@ -33,6 +33,15 @@ resources:
       comment: >-
         Chunk outputs written by the Data Chunking job for this environment
         (chunk1_csv, chunk2_csv, chunk3_json, chunk4_xml). Input to the Bronze layer.
+    checkpoints:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.bronze.name}
+      name: ${var.checkpoint_volume}
+      volume_type: MANAGED
+      comment: >-
+        Streaming state for the Bronze loads: one folder per table holding the Auto Loader
+        checkpoint (which files are already loaded) and its schema location (_schema).
+        Never delete a checkpoint on its own - only together with emptying its table.
 
 # The landing schema/volume is SHARED by dev and prod, so only one target may own it.
 # If both targets declared it, the second deploy would fail ("already exists") and

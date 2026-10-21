@@ -7,6 +7,8 @@ the explicit casts used when loading. Column meanings marked "Likely:" are our b
 
 import re
 
+from pyspark.sql import types as T
+
 _ERA5 = "Likely ERA5 variable"
 _HIMAWARI = "Likely Himawari-8 brightness temperature, K; 0 = missing; null when the source file has no satellite columns"
 
@@ -60,15 +62,34 @@ AUDIT_COLUMNS = [
     ("ingestion_method", "STRING", "Audit: how the row was ingested into Bronze, e.g. COPY_INTO."),
 ]
 
+# Data-quality column used by readers that support rescued data (e.g. Auto Loader).
+RESCUED_COLUMN = (
+    "_rescued_data",
+    "STRING",
+    "Data quality: source values that did not fit the schema (wrong type, unexpected or differently "
+    "cased field), as JSON including the file path. Null when the row parsed cleanly.",
+)
+
 ALL_COLUMNS = DATA_COLUMNS + AUDIT_COLUMNS
 NATURAL_KEY = ["row", "col", "year", "month", "day", "hour"]
 SATELLITE_BANDS = ["B09B", "B10B", "B11B", "B12B", "B14B", "B16B", "I2B", "IRB", "WVB"]
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_SPARK_TYPES = {"INT": T.IntegerType, "DOUBLE": T.DoubleType, "STRING": T.StringType, "TIMESTAMP": T.TimestampType}
+
+
+def bronze_columns(include_rescued: bool = False) -> list:
+    """Columns of a Bronze table: data + audit, plus `_rescued_data` when the reader supports it."""
+    return ALL_COLUMNS + ([RESCUED_COLUMN] if include_rescued else [])
 
 
 def column_names(columns=DATA_COLUMNS):
     return [name for name, _type, _desc in columns]
+
+
+def spark_schema(columns=DATA_COLUMNS) -> T.StructType:
+    """Explicit Spark schema for the given columns (all nullable)."""
+    return T.StructType([T.StructField(n, _SPARK_TYPES[t](), True) for n, t, _d in columns])
 
 
 def quote_identifier(name: str) -> str:

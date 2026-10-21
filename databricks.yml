@@ -39,6 +39,12 @@ variables:
   bronze_chunk1_table:
     description: Bronze Delta table for chunk 1 (Apr 2019 CSV), loaded with COPY INTO.
     default: rain_forecast_chunk1_csv
+  bronze_chunk3_table:
+    description: Bronze Delta table for chunk 3 (Apr 2020 gzip JSON), loaded with Auto Loader.
+    default: rain_forecast_chunk3_json
+  checkpoint_volume:
+    description: Volume in the Bronze schema holding streaming checkpoints and schema locations.
+    default: checkpoints
 
 targets:
   dev:

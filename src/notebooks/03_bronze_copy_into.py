@@ -55,15 +55,15 @@ src_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 if src_root not in sys.path:
     sys.path.insert(0, src_root)
 
-from common.copy_into import INGESTION_METHOD, build_copy_into_sql, resolve_run_id
-from common.rain_schema import (
-    NATURAL_KEY,
-    SATELLITE_BANDS,
-    comment_sql,
-    create_table_sql,
-    full_table_name,
-    quote_identifier,
+from common.bronze_checks import (
+    CHECK_SCHEMA,
+    audit_check_sql,
+    compare_file_stats,
+    duplicate_keys_sql,
+    table_file_stats_sql,
 )
+from common.copy_into import INGESTION_METHOD, build_copy_into_sql, resolve_run_id
+from common.rain_schema import SATELLITE_BANDS, comment_sql, create_table_sql, full_table_name, quote_identifier
 from common.source_reader import FILE_NAME_COLUMN, parse_header, read_csv_by_name
 
 table = full_table_name(params["catalog"], params["bronze_schema"], params["table_name"])
@@ -164,53 +164,11 @@ source_stats = {
     .collect()
 }
 
-bands_null_all = " AND ".join(f"{quote_identifier(b)} IS NULL" for b in SATELLITE_BANDS)
-bands_null_any = " OR ".join(f"{quote_identifier(b)} IS NULL" for b in SATELLITE_BANDS)
-table_stats = {
-    r["source_file"]: r.asDict()
-    for r in spark.sql(f"""
-        SELECT source_file,
-               count(*)                                         AS rows,
-               sum(label)                                       AS label_sum,
-               count_if({bands_null_all})                       AS rows_all_bands_null,
-               count_if({bands_null_any})                       AS rows_any_band_null,
-               count_if(label IS NULL OR label NOT IN (0, 1))   AS rows_bad_label
-        FROM {table}
-        GROUP BY source_file
-    """).collect()
-}
+table_stats = {r["source_file"]: r.asDict() for r in spark.sql(table_file_stats_sql(table)).collect()}
 
-check_rows, problems = [], []
-for name in sorted(set(source_stats) | set(table_stats)):
-    src_rows, src_label = source_stats.get(name, (0, None))
-    t = table_stats.get(name, {})
-    tbl_rows = t.get("rows", 0)
-    issues = []
-    if name not in source_stats:
-        issues.append("in table but not in chunk folder")
-    if name not in table_stats:
-        issues.append("not loaded")
-    if tbl_rows != src_rows:
-        issues.append(f"rows {tbl_rows:,} != source {src_rows:,}")
-    if t and t["label_sum"] != src_label:
-        issues.append(f"sum(label) {t['label_sum']} != source {src_label}")
-    if t and t["rows_bad_label"]:
-        issues.append(f"{t['rows_bad_label']:,} rows with null/invalid label")
-    if t and has_bands.get(name) is False and t["rows_all_bands_null"] != tbl_rows:
-        issues.append("satellite bands not null for a file without satellite columns")
-    if t and has_bands.get(name) is True and t["rows_any_band_null"]:
-        issues.append(f"{t['rows_any_band_null']:,} rows with null bands in a file that has them")
-    problems += [f"{name}: {i}" for i in issues]
-    check_rows.append((
-        name, "yes" if has_bands.get(name) else "no", src_rows, tbl_rows, src_label, t.get("label_sum"),
-        t.get("rows_all_bands_null", 0), "OK" if not issues else "; ".join(issues),
-    ))
-
-check_df = spark.createDataFrame(
-    check_rows,
-    "source_file string, has_satellite_columns string, source_rows long, table_rows long, "
-    "source_label_sum long, table_label_sum long, rows_all_bands_null long, status string",
-)
+# Shared, unit-tested comparison (src/common/bronze_checks.py).
+check_rows, problems = compare_file_stats(source_stats, table_stats, has_bands)
+check_df = spark.createDataFrame(check_rows, CHECK_SCHEMA)
 
 # COMMAND ----------
 
@@ -228,18 +186,8 @@ display(check_df.orderBy("has_satellite_columns", "source_file"))
 
 # COMMAND ----------
 
-key_cols = ", ".join(quote_identifier(c) for c in NATURAL_KEY)
-duplicate_keys = spark.sql(
-    f"SELECT count(*) AS n FROM (SELECT {key_cols} FROM {table} GROUP BY {key_cols} HAVING count(*) > 1)"
-).first()["n"]
-audit = spark.sql(f"""
-    SELECT count_if(source_file IS NULL OR source_file_path IS NULL OR source_file_modified_dt IS NULL
-                    OR load_dt IS NULL OR load_run_id IS NULL OR ingestion_method IS NULL) AS rows_null_audit,
-           count_if(ingestion_method <> '{INGESTION_METHOD}')                             AS rows_other_method,
-           count(DISTINCT load_run_id)                                                     AS load_runs,
-           count(*)                                                                        AS total_rows
-    FROM {table}
-""").first().asDict()
+duplicate_keys = spark.sql(duplicate_keys_sql(table)).first()["n"]
+audit = spark.sql(audit_check_sql(table, INGESTION_METHOD)).first().asDict()
 
 if duplicate_keys:
     problems.append(f"{duplicate_keys:,} duplicate natural keys")

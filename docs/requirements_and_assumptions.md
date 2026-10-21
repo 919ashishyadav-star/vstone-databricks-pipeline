@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Day 1 (Setup + Data Chunking) merged into `dev`; Day 2 (Bronze chunk 1) on `feature/bronze-layer` |
+| **Status** | Day 1 (Setup + Data Chunking) merged into `dev`; Day 2 (Bronze chunk 1) and Day 3 part 1 (Bronze chunk 3) on `feature/bronze-layer` |
 | **Last updated** | 2026-10-21 |
 | **Audience** | Trainer / reviewer new to the project |
 
@@ -235,6 +235,28 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
 20. **COPY INTO never uses `force`.** It skips files already loaded into the table, so a rerun
     loads 0 rows (verified: the second run inserted 0 rows and the table was unchanged; see
     `docs/bronze/bronze_chunk1_verification.md`).
+21. **Chunk 3 is loaded into `rain_forecast_chunk3_json` with Auto Loader**, using an explicit
+    **typed** schema (the JSON values are already typed), no schema evolution
+    (`schemaEvolutionMode = none`) and a `_rescued_data` column (described like every other
+    column). Same audit columns as chunk 1, with `ingestion_method = 'AUTO_LOADER'`;
+    `CLUSTER BY (day, hour)`.
+22. **Checkpoints live in their own volume**, `vstone_<env>_bronze.checkpoints`, one folder per
+    table (`checkpoints/<table>/`), with the Auto Loader schema location in `<table>/_schema`.
+    A checkpoint is never deleted on its own – only together with emptying its table – and the
+    notebook refuses to run if the table has rows but its checkpoint is missing.
+23. **Serverless trigger:** `trigger(availableNow=True)` processes every new file and then stops;
+    `cloudFiles.maxFilesPerTrigger = 10` splits the 30 files into 3 micro-batches. The
+    per-batch report is built from the table (one `load_dt` per micro-batch), because the
+    streaming progress report's row count can be null on serverless.
+24. **Bad records:** a value of the wrong type, an unexpected field or a field with different
+    case becomes null and is kept in `_rescued_data` – the row is not dropped. A completely
+    malformed line is **not** rescued; it arrives as an all-null row, so a separate check counts
+    rows whose keys and label are all null. Any rescued or malformed row fails the job. Proven with
+    a 5-line test file (`docs/bronze/rescued_data_test/`).
+25. **Shared Bronze checks:** the per-file comparison and the duplicate, audit and batch queries
+    live in `src/common/bronze_checks.py`, and the audit columns in `src/common/bronze_audit.py`,
+    used by every Bronze notebook. The refactor was verified by rerunning chunk 1: the check
+    output was byte-identical to the original run.
 
 ---
 

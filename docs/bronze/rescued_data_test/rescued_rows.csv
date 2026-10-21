@@ -1,0 +1,6 @@
+"row","col","hour","CAPE","KX","B14B","label","_rescued_data","source_file","load_run_id","ingestion_method"
+"0","0","0","1.5","1.5","285.25","0",,"combined_test_rescued.json","690130690941453","AUTO_LOADER"
+"1","0","0",,"1.5","285.25","0","{""CAPE"":""not_a_number"",""_file_path"":""/Volumes/workspace/vstone_dev_bronze/raw_files/chunks/_test_rescued_json/combined_test_rescued.json""}","combined_test_rescued.json","690130690941453","AUTO_LOADER"
+"2","0","0","1.5","1.5","285.25","0","{""EXTRA_FIELD"":123,""_file_path"":""/Volumes/workspace/vstone_dev_bronze/raw_files/chunks/_test_rescued_json/combined_test_rescued.json""}","combined_test_rescued.json","690130690941453","AUTO_LOADER"
+"3","0","0","1.5",,"285.25","0","{""kx"":7.25,""_file_path"":""/Volumes/workspace/vstone_dev_bronze/raw_files/chunks/_test_rescued_json/combined_test_rescued.json""}","combined_test_rescued.json","690130690941453","AUTO_LOADER"
+,,,,,,,,"combined_test_rescued.json","690130690941453","AUTO_LOADER"

@@ -1,0 +1,8 @@
+Run URL: <run URL omitted>
+2026-10-21 13:48:13 "[dev] Bronze Auto Loader" INTERNAL_ERROR FAILED Task bronze_auto_loader failed with message: Workload failed, see run output for details.
+AssertionError: Bronze Auto Loader sanity check failed:
+- combined_test_rescued.json: 1 rows with null/invalid label
+- combined_test_rescued.json: 1 rows with null bands in a file that has them
+- combined_test_rescued.json: 3 rows with rescued data
+- combined_test_rescued.json: 1 rows with every key and label null (malformed)
+Error: failed to reach TERMINATED or SKIPPED, got INTERNAL_ERROR: Task bronze_auto_loader failed with message: Workload failed, see run output for details.

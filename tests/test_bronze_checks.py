@@ -4,6 +4,7 @@ from common.bronze_checks import (
     audit_check_sql,
     compare_file_stats,
     duplicate_keys_sql,
+    load_batches_sql,
     table_file_stats_sql,
 )
 
@@ -61,6 +62,13 @@ def test_table_file_stats_sql_with_and_without_rescued():
     rescued = table_file_stats_sql(TABLE, include_rescued=True)
     assert "count_if(_rescued_data IS NOT NULL) AS rows_rescued" in rescued
     assert "AS rows_all_data_null" in rescued
+
+
+def test_load_batches_sql_filters_this_run_and_groups_by_batch():
+    sql = load_batches_sql(TABLE, "877938057802640", "2026-10-21 13:27:30.123")
+    assert "WHERE load_run_id = '877938057802640'" in sql
+    assert "load_dt >= CAST('2026-10-21 13:27:30.123' AS TIMESTAMP)" in sql
+    assert "GROUP BY load_dt" in sql and "count(DISTINCT source_file) AS files" in sql
 
 
 def test_duplicate_and_audit_sql():

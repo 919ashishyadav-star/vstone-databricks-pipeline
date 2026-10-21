@@ -48,7 +48,6 @@ if empty:
 
 # COMMAND ----------
 
-import json
 import os
 import sys
 
@@ -65,6 +64,7 @@ from common.bronze_checks import (
     audit_check_sql,
     compare_file_stats,
     duplicate_keys_sql,
+    load_batches_sql,
     table_file_stats_sql,
 )
 from common.rain_schema import (
@@ -147,6 +147,7 @@ options = auto_loader_options("json", params["max_files_per_trigger"], schema_lo
 for key, value in options.items():
     print(f"  {key} = {value}")
 
+run_started = str(spark.sql("SELECT current_timestamp() AS t").first()["t"])
 query = (
     spark.readStream.format("cloudFiles")
     .options(**options)
@@ -159,16 +160,13 @@ query = (
 )
 query.awaitTermination()
 
-
-def as_dict(progress):
-    return progress if isinstance(progress, dict) else json.loads(progress.json)
-
-
-batches = [as_dict(p) for p in query.recentProgress]
-batch_rows = [(p["batchId"], int(p.get("numInputRows", 0))) for p in batches if int(p.get("numInputRows", 0)) > 0]
-inserted_rows = sum(n for _b, n in batch_rows)
-display(spark.createDataFrame(batch_rows or [(-1, 0)], "batch_id long, rows long"))
-print(f"Micro-batches with data: {len(batch_rows)}; rows inserted by this run: {inserted_rows:,}")
+# What this run wrote, per micro-batch (each micro-batch stamps its own load_dt).
+batches_df = spark.sql(load_batches_sql(table, run_id, run_started))
+batch_rows = batches_df.collect()
+inserted_rows = sum(r["rows"] for r in batch_rows)
+inserted_files = sum(r["files"] for r in batch_rows)
+display(batches_df)
+print(f"Micro-batches with data: {len(batch_rows)}; files: {inserted_files}; rows inserted by this run: {inserted_rows:,}")
 
 # COMMAND ----------
 
@@ -253,6 +251,7 @@ summary = [
     ("Rows in chunk files", f"{sum(v[0] for v in source_stats.values()):,}"),
     ("Rows in table", f"{audit['total_rows']:,}"),
     ("Rows inserted by this run", f"{inserted_rows:,}"),
+    ("Files loaded by this run", str(inserted_files)),
     ("Micro-batches with data in this run", str(len(batch_rows))),
     ("Rows with rescued data", f"{rescued_total:,}"),
     ("Duplicate natural keys", f"{duplicate_keys:,}"),

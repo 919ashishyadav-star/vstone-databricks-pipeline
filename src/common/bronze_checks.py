@@ -1,6 +1,6 @@
 """Sanity checks shared by the Bronze loads: compare each loaded file with its chunk file."""
 
-from common.rain_schema import NATURAL_KEY, SATELLITE_BANDS, quote_identifier
+from common.rain_schema import NATURAL_KEY, SATELLITE_BANDS, quote_identifier, sql_string
 
 # Spark DDL for the per-file check table shown in the notebooks.
 CHECK_SCHEMA = (
@@ -30,6 +30,22 @@ def table_file_stats_sql(table: str, include_rescued: bool = False) -> str:
         f"{extra}\n"
         f"FROM {table}\n"
         "GROUP BY source_file"
+    )
+
+
+def load_batches_sql(table: str, run_id: str, since: str) -> str:
+    """Rows and files written per micro-batch by one run.
+
+    Every micro-batch stamps its own `load_dt`, so grouping this run's rows by `load_dt` gives one row per
+    micro-batch. `since` is the run's start time; it separates repeated manual runs that share the id 'manual'.
+    """
+    return (
+        "SELECT load_dt, count(*) AS rows, count(DISTINCT source_file) AS files,\n"
+        "       min(source_file) AS first_file, max(source_file) AS last_file\n"
+        f"FROM {table}\n"
+        f"WHERE load_run_id = {sql_string(run_id)} AND load_dt >= CAST({sql_string(since)} AS TIMESTAMP)\n"
+        "GROUP BY load_dt\n"
+        "ORDER BY load_dt"
     )
 
 

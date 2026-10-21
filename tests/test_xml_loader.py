@@ -123,4 +123,5 @@ def test_xml_with_alphabetical_elements_loads_by_name_with_real_types(spark, tmp
         "row int, col int, hour int, label int, B09B double, CIN double, CAPE double",
     )
     assertDataFrameEqual(got, expected)
-    assert df.filter(df[CORRUPT_RECORD_COLUMN].isNotNull()).count() == 0
+    # Spark refuses queries on raw files that read only the corrupt-record column, so read it with a data column.
+    assert [r[CORRUPT_RECORD_COLUMN] for r in df.select("row", CORRUPT_RECORD_COLUMN).collect()] == [None]

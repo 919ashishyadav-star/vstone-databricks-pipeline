@@ -1,0 +1,56 @@
+# Dev-only job: incremental-load demo (two drops) and column-order proof for the chunk 2 pipeline.
+# Runs src/notebooks/06b_bronze_chunk2_pipeline_demo.py, which starts pipeline updates itself and always
+# moves the held files back. It uses full refreshes, so it exists only in the dev target.
+# Do not run it together with the Data Chunking job or the Bronze Declarative Pipeline job.
+
+targets:
+  dev:
+    resources:
+      jobs:
+        bronze_chunk2_demo:
+          name: "[${bundle.target}] Bronze chunk 2 incremental demo"
+          description: >-
+            Evidence run for the chunk 2 Declarative Pipeline: loads the files in two drops (holding folder),
+            shows the second update loads only the new files and a third loads 0 rows, proves CSV columns are
+            matched by header name with a reordered test file, then cleans up with a full refresh. Restore-safe:
+            run with mode = restore to put the chunk folder back after a cancelled run.
+          max_concurrent_runs: 1
+          timeout_seconds: 7200
+          email_notifications:
+            on_failure:
+              - ${workspace.current_user.userName}
+
+          parameters:
+            - name: catalog
+              default: ${var.catalog}
+            - name: bronze_schema
+              default: ${var.bronze_schema}
+            - name: raw_volume
+              default: ${var.raw_volume}
+            - name: chunk_name
+              default: chunk2_csv
+            - name: table_name
+              default: ${var.bronze_chunk2_table}
+            - name: event_log_table
+              default: ${var.bronze_chunk2_event_log_table}
+            - name: pipeline_id
+              default: ${resources.pipelines.bronze_chunk2.id}
+            - name: hold_folder
+              default: _hold
+            - name: first_drop_files
+              default: "15"
+            - name: expected_files
+              default: "31"
+            - name: column_order_test_file
+              default: ${workspace.file_path}/docs/bronze/column_order_test/combined_test_column_order.csv
+            - name: original_file
+              default: combined_2019_10_01.csv
+            - name: mode
+              default: demo
+
+          tasks:
+            - task_key: bronze_chunk2_demo
+              notebook_task:
+                notebook_path: ../src/notebooks/06b_bronze_chunk2_pipeline_demo.py
+              max_retries: 0
+              disable_auto_optimization: true

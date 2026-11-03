@@ -1,6 +1,7 @@
 """Load and validate the chunk plan (which months go to which chunk, in which format)."""
 
 import json
+import re
 
 from common.source_reader import file_month
 
@@ -81,6 +82,23 @@ def validate_chunk_plan(plan: dict, source_file_names) -> dict:
     if errors:
         raise ValueError("Invalid chunk plan:\n- " + "\n- ".join(errors))
     return assignment
+
+
+def source_csv_for(output_name: str):
+    """Original source CSV for a chunk output, e.g. combined_2020_10_01.xml.gz -> combined_2020_10_01.csv.
+
+    Returns None when the name is not a source day (e.g. a test file).
+    """
+    match = re.match(r"^(combined_\d{4}_\d{2}_\d{2})\.", output_name or "")
+    return f"{match.group(1)}.csv" if match else None
+
+
+def find_chunk(plan: dict, name: str) -> dict:
+    """The chunk entry with this name from the chunk plan."""
+    for chunk in plan.get("chunks") or []:
+        if chunk.get("name") == name:
+            return chunk
+    raise ValueError(f"Chunk {name!r} is not in the chunk plan")
 
 
 def output_file_name(source_file_name: str, fmt: str, compression: str = "none") -> str:

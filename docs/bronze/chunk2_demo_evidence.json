@@ -1,0 +1,404 @@
+{
+    "updates":  [
+                    {
+                        "update":  "A",
+                        "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                        "full_refresh":  true,
+                        "rows_loaded":  7425000,
+                        "files_loaded":  15,
+                        "micro_batches":  2,
+                        "first_file":  "combined_2019_10_01.csv",
+                        "last_file":  "combined_2019_10_15.csv",
+                        "table_rows_after":  7425000,
+                        "table_files_after":  15
+                    },
+                    {
+                        "update":  "B",
+                        "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                        "full_refresh":  false,
+                        "rows_loaded":  6682500,
+                        "files_loaded":  16,
+                        "micro_batches":  2,
+                        "first_file":  "combined_2019_10_16.csv",
+                        "last_file":  "combined_2019_10_31.csv",
+                        "table_rows_after":  14107500,
+                        "table_files_after":  31
+                    },
+                    {
+                        "update":  "C",
+                        "update_id":  "a88478bd-58ee-4544-9d66-338780b5db9b",
+                        "full_refresh":  false,
+                        "rows_loaded":  0,
+                        "files_loaded":  0,
+                        "micro_batches":  0,
+                        "first_file":  null,
+                        "last_file":  null,
+                        "table_rows_after":  14107500,
+                        "table_files_after":  31
+                    },
+                    {
+                        "update":  "D",
+                        "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                        "full_refresh":  false,
+                        "rows_loaded":  10,
+                        "files_loaded":  1,
+                        "micro_batches":  1,
+                        "first_file":  "combined_test_column_order.csv",
+                        "last_file":  "combined_test_column_order.csv",
+                        "table_rows_after":  14107510,
+                        "table_files_after":  32
+                    },
+                    {
+                        "update":  "E",
+                        "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                        "full_refresh":  true,
+                        "rows_loaded":  14107500,
+                        "files_loaded":  31,
+                        "micro_batches":  4,
+                        "first_file":  "combined_2019_10_01.csv",
+                        "last_file":  "combined_2019_10_31.csv",
+                        "table_rows_after":  14107500,
+                        "table_files_after":  31
+                    }
+                ],
+    "column_order_proof":  {
+                               "test_file":  "combined_test_column_order.csv",
+                               "test_header":  [
+                                                   "label",
+                                                   "WVB",
+                                                   "IRB",
+                                                   "I2B",
+                                                   "B16B",
+                                                   "B14B",
+                                                   "B12B",
+                                                   "B11B",
+                                                   "B10B",
+                                                   "B09B",
+                                                   "V850",
+                                                   "V250",
+                                                   "U850",
+                                                   "U250",
+                                                   "TCWV",
+                                                   "TCW",
+                                                   "TCLW",
+                                                   "SSHF",
+                                                   "SLOR",
+                                                   "SLHF",
+                                                   "R850",
+                                                   "R500",
+                                                   "R250",
+                                                   "PEV",
+                                                   "KX",
+                                                   "ISOR",
+                                                   "IE",
+                                                   "EWSS",
+                                                   "CIN",
+                                                   "CAPE",
+                                                   "hour",
+                                                   "day",
+                                                   "month",
+                                                   "year",
+                                                   "col",
+                                                   "row"
+                                               ],
+                               "test_rows":  10,
+                               "matched_rows":  10,
+                               "equal_rows":  10,
+                               "rescued_rows":  0
+                           },
+    "expectation_metrics":  [
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "col_in_range",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "hour_in_range",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "ingestion_method_set",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "label_is_0_or_1",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "month_in_chunk",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "no_rescued_data",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "not_malformed",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "row_in_range",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "16e36645-8198-4baa-88c6-437ddeb206c1",
+                                    "first_event":  "2026-11-03 10:22:01.584000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "source_file_present",
+                                    "passed_records":  7425000,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "col_in_range",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "hour_in_range",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "ingestion_method_set",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "label_is_0_or_1",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "month_in_chunk",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "no_rescued_data",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "not_malformed",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "row_in_range",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "49ed2c5e-cd93-4d15-8735-92f915396266",
+                                    "first_event":  "2026-11-03 10:23:47.031000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "source_file_present",
+                                    "passed_records":  6682500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "col_in_range",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "hour_in_range",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "ingestion_method_set",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "label_is_0_or_1",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "month_in_chunk",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "no_rescued_data",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "not_malformed",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "row_in_range",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "cc63c47d-440e-4fc3-a466-895d13012096",
+                                    "first_event":  "2026-11-03 10:24:37.512000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "source_file_present",
+                                    "passed_records":  10,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "col_in_range",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "hour_in_range",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "ingestion_method_set",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "label_is_0_or_1",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "month_in_chunk",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "no_rescued_data",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "not_malformed",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "row_in_range",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                },
+                                {
+                                    "update_id":  "36eb7749-4bae-48f4-82a6-bc4f881d965e",
+                                    "first_event":  "2026-11-03 10:25:36.261000",
+                                    "dataset":  "workspace.vstone_dev_bronze.rain_forecast_chunk2_csv",
+                                    "expectation":  "source_file_present",
+                                    "passed_records":  14107500,
+                                    "failed_records":  0
+                                }
+                            ],
+    "restore":  {
+                    "moved_back":  0,
+                    "test_file_removed":  false,
+                    "files_in_chunk_folder":  31
+                }
+}

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from common.chunk_plan import load_chunk_plan, output_file_name, validate_chunk_plan
+from common.chunk_plan import find_chunk, load_chunk_plan, output_file_name, source_csv_for, validate_chunk_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCES = [
@@ -81,6 +81,26 @@ def test_unexpected_source_file_name_is_rejected():
 )
 def test_output_file_name_keeps_the_source_day(fmt, compression, expected):
     assert output_file_name("combined_2019_04_01.csv", fmt, compression) == expected
+
+
+@pytest.mark.parametrize(
+    "output, expected",
+    [
+        ("combined_2020_10_01.xml.gz", "combined_2020_10_01.csv"),
+        ("combined_2020_04_30.json.gz", "combined_2020_04_30.csv"),
+        ("combined_2019_04_27.csv", "combined_2019_04_27.csv"),
+        ("combined_test_bad.xml", None),
+    ],
+)
+def test_source_csv_for(output, expected):
+    assert source_csv_for(output) == expected
+
+
+def test_find_chunk_returns_the_xml_row_tag_from_the_repo_config():
+    plan = load_chunk_plan(str(REPO_ROOT / "src" / "config" / "chunk_plan.json"))
+    assert find_chunk(plan, "chunk4_xml")["xml_row_tag"] == "record"
+    with pytest.raises(ValueError):
+        find_chunk(plan, "chunk9")
 
 
 def test_load_chunk_plan_reads_json(tmp_path):

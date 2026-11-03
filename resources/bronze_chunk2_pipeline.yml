@@ -1,0 +1,47 @@
+# Lakeflow Declarative Pipeline (formerly DLT) for Bronze chunk 2: loads chunk2_csv (Oct 2019 CSV) into the
+# streaming table ${var.bronze_chunk2_table} with Auto Loader. Code: src/pipelines/bronze_chunk2_csv.py.
+# Assumption (Q2): the spec's "4th part" for this method is chunk 2, pending trainer confirmation.
+#
+# The pipeline OWNS its table: only its updates write to it, and deleting the pipeline (e.g. bundle destroy)
+# deletes the table too. Normally run through the "Bronze Declarative Pipeline" job, which runs the checks after it.
+
+resources:
+  pipelines:
+    bronze_chunk2:
+      name: "[${bundle.target}] Bronze Declarative Pipeline (chunk 2)"
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.bronze.name}
+      serverless: true      # Free Edition: serverless only
+      continuous: false     # triggered: each update loads the new files, then stops
+      channel: CURRENT
+      # src/ is the pipeline's root folder, so the source file can import common.*.
+      root_path: ../src
+      libraries:
+        - file:
+            path: ../src/pipelines/bronze_chunk2_csv.py
+
+      # Read by the pipeline source with spark.conf.get(...). No names are hard-coded in the code.
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.bronze_schema}
+        raw_volume: ${var.raw_volume}
+        chunk_name: chunk2_csv
+        table_name: ${var.bronze_chunk2_table}
+        cluster_by: day,hour
+        max_files_per_trigger: "10"
+        reset_allowed: ${var.pipeline_reset_allowed}
+        chunk_plan_path: ${workspace.file_path}/src/config/chunk_plan.json
+
+      # Publish the event log as a table, so expectation metrics per update can be queried and saved.
+      event_log:
+        catalog: ${var.catalog}
+        schema: ${resources.schemas.bronze.name}
+        name: ${var.bronze_chunk2_event_log_table}
+
+      notifications:
+        - email_recipients:
+            - ${workspace.current_user.userName}
+          alerts:
+            - on-update-failure
+            - on-update-fatal-failure
+            - on-flow-failure

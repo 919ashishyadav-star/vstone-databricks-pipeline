@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Day 1 (Setup + Data Chunking), branch `feature/data-profiling` |
-| **Last updated** | 2026-10-17 |
+| **Status** | Day 1 (Setup + Data Chunking) merged into `dev`; Day 2 and Day 3 (Bronze chunks 1–4) on `feature/bronze-layer`; chunk 2 uses the Declarative Pipeline assuming Q2 = chunk 2 (not yet confirmed) |
+| **Last updated** | 2026-11-03 |
 | **Audience** | Trainer / reviewer new to the project |
 
 This document explains what the project must deliver, the constraints it runs under,
@@ -217,6 +217,114 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
 15. **Row-count sanity check for every chunk:** rows in each output file must equal rows in
     its source file, the file count must match, and no unexpected files may be present;
     otherwise the job fails and sends the failure email.
+16. **One Bronze table per chunk / ingestion method.** Chunk 1 → `rain_forecast_chunk1_csv`
+    (COPY INTO); Day 3 adds `…_chunk2_csv`, `…_chunk3_json` and `…_chunk4_xml`; Silver
+    combines them. Table names are bundle variables (e.g. `bronze_chunk1_table`).
+17. **Bronze audit columns:** `source_file`, `source_file_path` and `source_file_modified_dt`
+    (from file metadata), `load_dt` (load time), `load_run_id` (the job run ID, or `'manual'`
+    when the notebook is run by hand) and `ingestion_method` (e.g. `'COPY_INTO'`), so Silver
+    can tell which method loaded each row.
+18. **The Bronze schema is explicit:** every column is read as text (no `inferSchema`) and cast
+    to the table's type; the table and every column have descriptions from
+    `src/common/rain_schema.py`. Values are kept exactly as in the source (`CIN = 9999`,
+    band = 0). Files with different headers are matched **by column name** – proven for the
+    4 files with 27 columns (satellite bands null on every row, `sum(label)` equal to the source).
+19. **Liquid Clustering `CLUSTER BY (day, hour)`** for chunk 1: the table holds one year and one
+    month, so `year` and `month` would add nothing. `(row, col)` will be compared in the Day 7
+    benchmark.
+20. **COPY INTO never uses `force`.** It skips files already loaded into the table, so a rerun
+    loads 0 rows (verified: the second run inserted 0 rows and the table was unchanged; see
+    `docs/bronze/bronze_chunk1_verification.md`).
+21. **Chunk 3 is loaded into `rain_forecast_chunk3_json` with Auto Loader**, using an explicit
+    **typed** schema (the JSON values are already typed), no schema evolution
+    (`schemaEvolutionMode = none`) and a `_rescued_data` column (described like every other
+    column). Same audit columns as chunk 1, with `ingestion_method = 'AUTO_LOADER'`;
+    `CLUSTER BY (day, hour)`.
+22. **Checkpoints live in their own volume**, `vstone_<env>_bronze.checkpoints`, one folder per
+    table (`checkpoints/<table>/`), with the Auto Loader schema location in `<table>/_schema`.
+    A checkpoint is never deleted on its own – only together with emptying its table – and the
+    notebook refuses to run if the table has rows but its checkpoint is missing.
+23. **Serverless trigger:** `trigger(availableNow=True)` processes every new file and then stops;
+    `cloudFiles.maxFilesPerTrigger = 10` splits the 30 files into 3 micro-batches. The
+    per-batch report is built from the table (one `load_dt` per micro-batch), because the
+    streaming progress report's row count can be null on serverless.
+24. **Bad records:** a value of the wrong type, an unexpected field or a field with different
+    case becomes null and is kept in `_rescued_data` – the row is not dropped. A completely
+    malformed line is **not** rescued; it arrives as an all-null row, so a separate check counts
+    rows whose keys and label are all null. Any rescued or malformed row fails the job. Proven with
+    a 5-line test file (`docs/bronze/rescued_data_test/`).
+25. **Shared Bronze checks:** the per-file comparison and the duplicate, audit and batch queries
+    live in `src/common/bronze_checks.py`, and the audit columns in `src/common/bronze_audit.py`,
+    used by every Bronze notebook. The refactor was verified by rerunning chunk 1: the check
+    output was byte-identical to the original run.
+26. **Chunk 4 is loaded into `rain_forecast_chunk4_xml` with a PySpark batch read/write**
+    (`spark.read.format("xml")`), using the row tag from `src/config/chunk_plan.json`, an
+    explicit typed schema, the same audit columns with `ingestion_method = 'PYSPARK_XML'`,
+    `CLUSTER BY (day, hour)`, and one Delta commit per run.
+27. **Rerun safety without a checkpoint:** files already in the table (same `source_file` and
+    modification time, to the second) are skipped; a file that changed after it was loaded
+    stops the run; `mode = replace` reloads chosen files with
+    `replaceWhere "source_file IN (...)"`, so a reload never creates duplicates.
+28. **XML bad records:** parse mode `PERMISSIVE` (never `DROPMALFORMED`, which loses rows
+    silently, and not `FAILFAST`, which stops without keeping the record). Values of the wrong
+    type and unexpected or differently cased elements go to `_rescued_data`; a record that cannot
+    be parsed at all is kept as raw text in `_corrupt_record` (unlike JSON, where it was lost).
+    Any such row fails the checks. Proven with a test file (`docs/bronze/xml_bad_record_test/`).
+29. **XML lessons applied:** XML has no types and schema inference sorts columns alphabetically,
+    so nothing is inferred: elements are matched by name, columns are selected by name in table
+    order, and a check confirms the table's names, order and types equal `rain_schema`. The XML
+    load is compared with the **original landing CSVs**, including per-file `sum(CAPE)` and
+    `sum(B14B)` (tolerance 1e-9), to prove the CSV → XML → Delta round trip kept the values.
+30. **CI matches the serverless runtime.** Serverless job compute in this workspace runs
+    **Spark 4.2.0 on Python 3.11** (checked on 2026-10-21 with a one-off run), so CI tests on
+    **PySpark 4.2.0** (with PyArrow 18.1.0, Python 3.11 and Java 17). This also allows unit tests
+    of the native XML reader. The version should be re-checked when serverless is upgraded.
+31. **Chunk 2 → `rain_forecast_chunk2_csv` via a Lakeflow Declarative Pipeline** (serverless,
+    triggered, defined in the bundle: `resources/bronze_chunk2_pipeline.yml`, code in
+    `src/pipelines/bronze_chunk2_csv.py`, testable helpers in `src/common/declarative_pipeline.py`).
+    **Assumption pending trainer confirmation (Q2):** the spec's "4th part" for this method is taken
+    to be chunk 2. A streaming table fed by Auto Loader with an explicit **typed** schema from
+    `rain_schema`, `_rescued_data`, CSV header matched by name, the same audit columns with
+    `ingestion_method = 'DECLARATIVE_PIPELINE'`, `CLUSTER BY (day, hour)` and a description on the
+    table and every column (given in the code, since the pipeline owns the table).
+32. **Incremental by design:** the pipeline keeps the Auto Loader checkpoint itself (not in the
+    `checkpoints` volume). A normal update loads only files it has not seen (a second update with
+    no new files writes 0 rows); a **full refresh** empties the table and reads every file again.
+    `pipelines.reset.allowed` comes from the bundle variable `pipeline_reset_allowed`: **true in dev**
+    (for the demo) and **false in prod**, so prod Bronze cannot be wiped by a full refresh. The job
+    never runs a full refresh.
+33. **Expectations warn, never drop:** Bronze keeps raw rows, so data rules (`no_rescued_data`,
+    `not_malformed`, `label_is_0_or_1`, `hour_in_range`, `row_in_range`, `col_in_range`,
+    `month_in_chunk` from `chunk_plan.json`) only **warn**. Only a broken load (missing
+    `source_file` / `ingestion_method`) **fails** the update. All rules are null-safe. The checks
+    task after the pipeline re-checks the rules on the whole table and fails the job (and emails)
+    if any failed – the same "load, then fail" behaviour as the other Bronze loads. Sentinels
+    (`CIN = 9999`, band = 0) are not expectations; Silver handles them.
+34. **Pipeline-owned table limits:** only this pipeline writes to the table (no `COPY INTO`,
+    `INSERT` or manual `DELETE`); descriptions and clustering come only from the code and are
+    re-applied on every update (manual `ALTER TABLE … COMMENT` would be overwritten); the pipeline
+    does its own table maintenance, so there is no manual `OPTIMIZE` step; **deleting the pipeline
+    (e.g. `bundle destroy`) deletes the table**.
+35. **Triggered by a job:** `[<env>] Bronze Declarative Pipeline` runs a normal pipeline update,
+    then `06_bronze_chunk2_checks.py` (the shared checks, the expectation rules on the whole table,
+    the latest update's event-log metrics, the column order/type check). Started on its own, the
+    pipeline runs without the checks, so always use the job. Retries are disabled.
+36. **`load_run_id` for a pipeline** is the pipeline update ID if the runtime exposes it, otherwise
+    `pipeline-<pipeline id>` (a pipeline does not receive `{{job.run_id}}`). **Verified 2026-11-03:**
+    the update ID is not exposed, so every row has `pipeline-<pipeline id>` (one value for all
+    updates). Updates are told apart by `load_dt` (one per micro-batch) and the event log
+    (`origin.update_id`).
+37. **Event log published as a table** (`rain_forecast_chunk2_csv_event_log` in the Bronze schema)
+    so expectation metrics (passed / failed records per update) can be queried and saved as evidence.
+38. **Incremental demo and column-order proof** (dev-only job `[dev] Bronze chunk 2 incremental demo`,
+    `06b_bronze_chunk2_pipeline_demo.py`): days 16–31 are moved to `raw_files/_hold/chunk2_csv/`,
+    update A (full refresh) loads 15 files, the files are moved back, update B loads only the 16 new
+    files, update C loads 0 rows; then a test file with the **columns in reversed order**
+    (`docs/bronze/column_order_test/`) goes through the real pipeline (update D) and its values must
+    equal the original rows; finally the test file is deleted and update E (full refresh) rebuilds the
+    table from the 31 files. Restoring the held files and deleting the test file run in a `finally`
+    block and the notebook confirms the chunk folder has 31 files; `mode = restore` repairs a
+    cancelled run. The Data Chunking job must not run during the demo.
 
 ---
 
@@ -225,7 +333,7 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
 | # | Question | Current assumption | Impact if different |
 |---|---|---|---|
 | Q1 | Must all 122 files (~18.1 GB) be used on Free Edition, or is a subset acceptable? | Full dataset; the upload of all 122 files to the landing volume is in progress. Chunk outputs would add ~18 GB per environment. | A subset is a config change (decision 3). |
-| Q2 | The spec says "4th part" for the DLT CSV load. Is the Declarative Pipelines chunk **chunk 2** (Oct 2019 CSV)? | Chunk 2. | Chunk-to-method mapping in §4 changes. |
+| Q2 | The spec says "4th part" for the DLT CSV load. Is the Declarative Pipelines chunk **chunk 2** (Oct 2019 CSV)? | Chunk 2 – **built on this assumption** (decision 31) while waiting for confirmation. | Chunk-to-method mapping in §4 changes; the pipeline would read another chunk folder (`chunk_name` in the pipeline configuration) and that chunk's current Bronze table would be replaced. |
 | Q3 | How should the **4 files without satellite columns** (2019-04-27 to 04-30) be handled? | Not yet decided: keep rows with satellite bands as null, or quarantine them in Silver. | Affects Silver rules and Gold completeness for late April 2019. |
 | Q4 | Are the **19 incomplete days** acceptable as-is? | Yes – treated as absent data, not errors; Gold uses rates (decision 8). | If not, those days would need to be excluded or flagged in Gold. |
 | Q5 | Are the proposed **schema and volume names** (§3) acceptable? | Yes – already deployed to dev. | Renaming means changing bundle variables and redeploying. |

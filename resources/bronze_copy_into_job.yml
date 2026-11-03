@@ -1,0 +1,43 @@
+# "Bronze COPY INTO" job: loads chunk1_csv into the Bronze table with COPY INTO.
+# Runs src/notebooks/03_bronze_copy_into.py on serverless compute.
+
+resources:
+  jobs:
+    bronze_copy_into:
+      name: "[${bundle.target}] Bronze COPY INTO"
+      description: >-
+        Loads the chunk 1 CSV files (Apr 2019) from the Bronze raw_files volume into the Delta table
+        ${var.bronze_chunk1_table} with COPY INTO (explicit casts, audit columns, Liquid Clustering),
+        then runs sanity checks against the chunk files. Safe to rerun: already-loaded files are skipped.
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      # Job parameters are passed to the notebook widgets of the same name.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.bronze_schema}
+        - name: raw_volume
+          default: ${var.raw_volume}
+        - name: chunk_name
+          default: chunk1_csv
+        - name: table_name
+          default: ${var.bronze_chunk1_table}
+        - name: cluster_by
+          default: day,hour
+        - name: load_run_id
+          default: "{{job.run_id}}"
+        - name: run_optimize
+          default: "true"
+
+      tasks:
+        - task_key: bronze_copy_into
+          # No cluster is defined, so the task runs on serverless compute.
+          notebook_task:
+            notebook_path: ../src/notebooks/03_bronze_copy_into.py
+          max_retries: 0
+          disable_auto_optimization: true

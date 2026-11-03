@@ -39,6 +39,19 @@ variables:
   bronze_chunk1_table:
     description: Bronze Delta table for chunk 1 (Apr 2019 CSV), loaded with COPY INTO.
     default: rain_forecast_chunk1_csv
+  bronze_chunk2_table:
+    description: >-
+      Bronze streaming table for chunk 2 (Oct 2019 CSV), loaded by a Lakeflow Declarative Pipeline
+      (assumed chunk for this method, pending trainer confirmation - Q2).
+    default: rain_forecast_chunk2_csv
+  bronze_chunk2_event_log_table:
+    description: Table the chunk 2 pipeline publishes its event log to (expectation metrics per update).
+    default: rain_forecast_chunk2_csv_event_log
+  pipeline_reset_allowed:
+    description: >-
+      Whether a full refresh may empty the pipeline's Bronze table (pipelines.reset.allowed).
+      true only in dev (demo); prod keeps raw data safe from a one-click wipe.
+    default: "false"
   bronze_chunk3_table:
     description: Bronze Delta table for chunk 3 (Apr 2020 gzip JSON), loaded with Auto Loader.
     default: rain_forecast_chunk3_json
@@ -65,6 +78,7 @@ targets:
       bronze_schema: vstone_dev_bronze
       silver_schema: vstone_dev_silver
       gold_schema: vstone_dev_gold
+      pipeline_reset_allowed: "true"   # dev only: the incremental demo uses full refreshes
 
   prod:
     # Production mode adds extra safety checks before deploy.

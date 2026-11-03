@@ -1,0 +1,52 @@
+# "Bronze Declarative Pipeline" job: runs a (non full-refresh) update of the chunk 2 pipeline, then the
+# sanity checks notebook src/notebooks/06_bronze_chunk2_checks.py on serverless compute.
+# Always run the pipeline through this job: started on its own, the checks do not run.
+
+resources:
+  jobs:
+    bronze_declarative_pipeline:
+      name: "[${bundle.target}] Bronze Declarative Pipeline"
+      description: >-
+        Updates the Lakeflow Declarative Pipeline that loads the chunk 2 CSV files (Oct 2019) into the streaming
+        table ${var.bronze_chunk2_table} (explicit schema, rescued data, audit columns, Liquid Clustering, warn
+        expectations), then checks the table against the chunk files and the event log. Safe to rerun: the
+        pipeline loads only new files. Chunk 2 for this method is an assumption pending trainer confirmation (Q2).
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      # Job parameters are passed to the notebook widgets of the same name (the pipeline task ignores them;
+      # the pipeline gets its settings from its own configuration).
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.bronze_schema}
+        - name: raw_volume
+          default: ${var.raw_volume}
+        - name: chunk_name
+          default: chunk2_csv
+        - name: table_name
+          default: ${var.bronze_chunk2_table}
+        - name: event_log_table
+          default: ${var.bronze_chunk2_event_log_table}
+        - name: chunk_plan_path
+          default: ${workspace.file_path}/src/config/chunk_plan.json
+
+      tasks:
+        - task_key: bronze_chunk2_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.bronze_chunk2.id}
+            full_refresh: false   # never wipe Bronze from the job
+          max_retries: 0
+
+        - task_key: bronze_chunk2_checks
+          depends_on:
+            - task_key: bronze_chunk2_pipeline
+          # No cluster is defined, so the task runs on serverless compute.
+          notebook_task:
+            notebook_path: ../src/notebooks/06_bronze_chunk2_checks.py
+          max_retries: 0
+          disable_auto_optimization: true

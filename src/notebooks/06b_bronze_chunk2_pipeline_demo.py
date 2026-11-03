@@ -172,6 +172,8 @@ if params["mode"] == "restore":
 
 # COMMAND ----------
 
+# An unreadable folder (e.g. storage access failing) must not look like an empty one.
+expect(os.path.isdir(source_dir), f"Cannot read {source_dir}: missing, or storage access is failing")
 all_files = data_files(source_dir)
 expect(len(all_files) == expected_files, f"{source_dir} has {len(all_files)} files, expected {expected_files}")
 expect(not data_files(hold_dir), f"{hold_dir} is not empty; run with mode = restore first")

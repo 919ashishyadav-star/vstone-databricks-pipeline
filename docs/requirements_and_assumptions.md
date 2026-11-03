@@ -310,9 +310,10 @@ Per-file results: [`docs/profiling/file_row_counts.csv`](profiling/file_row_coun
     the latest update's event-log metrics, the column order/type check). Started on its own, the
     pipeline runs without the checks, so always use the job. Retries are disabled.
 36. **`load_run_id` for a pipeline** is the pipeline update ID if the runtime exposes it, otherwise
-    `pipeline-<pipeline id>` (a pipeline does not receive `{{job.run_id}}`); which one applies is
-    recorded in `docs/bronze/bronze_chunk2_verification.md` after the first run. Updates are told
-    apart by `load_dt` (one per micro-batch) and the event log.
+    `pipeline-<pipeline id>` (a pipeline does not receive `{{job.run_id}}`). **Verified 2026-11-03:**
+    the update ID is not exposed, so every row has `pipeline-<pipeline id>` (one value for all
+    updates). Updates are told apart by `load_dt` (one per micro-batch) and the event log
+    (`origin.update_id`).
 37. **Event log published as a table** (`rain_forecast_chunk2_csv_event_log` in the Bronze schema)
     so expectation metrics (passed / failed records per update) can be queried and saved as evidence.
 38. **Incremental demo and column-order proof** (dev-only job `[dev] Bronze chunk 2 incremental demo`,

@@ -41,8 +41,7 @@ variables:
     default: rain_forecast_chunk1_csv
   bronze_chunk2_table:
     description: >-
-      Bronze streaming table for chunk 2 (Oct 2019 CSV), loaded by a Lakeflow Declarative Pipeline
-      (assumed chunk for this method, pending trainer confirmation - Q2).
+      Bronze streaming table for chunk 2 (Oct 2019 CSV), loaded by a Lakeflow Declarative Pipeline.
     default: rain_forecast_chunk2_csv
   bronze_chunk2_event_log_table:
     description: Table the chunk 2 pipeline publishes its event log to (expectation metrics per update).

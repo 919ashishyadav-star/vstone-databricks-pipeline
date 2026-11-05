@@ -10,7 +10,7 @@ resources:
         Updates the Lakeflow Declarative Pipeline that loads the chunk 2 CSV files (Oct 2019) into the streaming
         table ${var.bronze_chunk2_table} (explicit schema, rescued data, audit columns, Liquid Clustering, warn
         expectations), then checks the table against the chunk files and the event log. Safe to rerun: the
-        pipeline loads only new files. Chunk 2 for this method is an assumption pending trainer confirmation (Q2).
+        pipeline loads only new files.
       max_concurrent_runs: 1
       timeout_seconds: 3600
       email_notifications:

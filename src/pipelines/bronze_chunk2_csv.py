@@ -56,7 +56,7 @@ table_comment = (
     f"(Auto Loader) from {source_dir}. One row per grid cell per hour; natural key row, col, year, month, "
     "day, hour. Values kept exactly as in the source (CIN = 9999 and satellite band = 0 mean missing). "
     "Values that did not fit the schema are kept in _rescued_data. Owned by the pipeline: only its "
-    "updates write to this table. Chunk 2 for this method is an assumption pending trainer confirmation (Q2)."
+    "updates write to this table."
 )
 
 

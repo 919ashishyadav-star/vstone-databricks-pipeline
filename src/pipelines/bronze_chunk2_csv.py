@@ -1,8 +1,5 @@
 """Lakeflow Declarative Pipeline: Bronze chunk 2 (Oct 2019 CSV) as a streaming table.
 
-Assumption (open question Q2): the spec's "4th part" for the declarative pipeline load is taken to be
-chunk 2 (Oct 2019 CSV), pending trainer confirmation.
-
 How it works:
 - A streaming table fed by Auto Loader. The pipeline keeps the checkpoint, so each update loads only
   files it has not seen before; a second update with no new files writes 0 rows.

@@ -1,8 +1,5 @@
 """Lakeflow Declarative Pipeline: Bronze chunk 2 (Oct 2019 CSV) as a streaming table.
 
-Assumption (open question Q2): the spec's "4th part" for the declarative pipeline load is taken to be
-chunk 2 (Oct 2019 CSV), pending trainer confirmation.
-
 How it works:
 - A streaming table fed by Auto Loader. The pipeline keeps the checkpoint, so each update loads only
   files it has not seen before; a second update with no new files writes 0 rows.
@@ -59,7 +56,7 @@ table_comment = (
     f"(Auto Loader) from {source_dir}. One row per grid cell per hour; natural key row, col, year, month, "
     "day, hour. Values kept exactly as in the source (CIN = 9999 and satellite band = 0 mean missing). "
     "Values that did not fit the schema are kept in _rescued_data. Owned by the pipeline: only its "
-    "updates write to this table. Chunk 2 for this method is an assumption pending trainer confirmation (Q2)."
+    "updates write to this table."
 )
 
 

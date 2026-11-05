@@ -5,9 +5,6 @@
 # MAGIC **Purpose:** sanity checks for `rain_forecast_chunk2_csv`, which is loaded by the Lakeflow Declarative
 # MAGIC Pipeline in `src/pipelines/bronze_chunk2_csv.py`. The job runs this notebook **after** the pipeline update.
 # MAGIC
-# MAGIC > **Assumption (Q2):** the spec's "4th part" for the declarative pipeline is taken to be chunk 2
-# MAGIC > (Oct 2019 CSV), pending trainer confirmation.
-# MAGIC
 # MAGIC Why a separate notebook: the pipeline owns its table and only declares it, so the checks the other Bronze
 # MAGIC notebooks run at the end live here. The pipeline's expectations only **warn** (Bronze keeps raw rows);
 # MAGIC this notebook turns any warning into a **job failure** (and the failure email).

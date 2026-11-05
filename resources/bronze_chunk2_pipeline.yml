@@ -1,6 +1,5 @@
 # Lakeflow Declarative Pipeline (formerly DLT) for Bronze chunk 2: loads chunk2_csv (Oct 2019 CSV) into the
 # streaming table ${var.bronze_chunk2_table} with Auto Loader. Code: src/pipelines/bronze_chunk2_csv.py.
-# Assumption (Q2): the spec's "4th part" for this method is chunk 2, pending trainer confirmation.
 #
 # The pipeline OWNS its table: only its updates write to it, and deleting the pipeline (e.g. bundle destroy)
 # deletes the table too. Normally run through the "Bronze Declarative Pipeline" job, which runs the checks after it.

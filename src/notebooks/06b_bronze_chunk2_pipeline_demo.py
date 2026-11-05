@@ -17,8 +17,6 @@
 # MAGIC run even if a step fails; the notebook then confirms the chunk folder has exactly the expected files.
 # MAGIC If the run itself is cancelled, run it again with `mode = restore`.
 # MAGIC Do **not** run the Data Chunking job or the Bronze Declarative Pipeline job while this runs.
-# MAGIC
-# MAGIC > **Assumption (Q2):** the declarative pipeline chunk is chunk 2 (Oct 2019 CSV), pending trainer confirmation.
 
 # COMMAND ----------
 
